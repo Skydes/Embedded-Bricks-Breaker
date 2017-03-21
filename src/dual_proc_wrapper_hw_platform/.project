@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>dua_proc_wrapper_hw_platform</name>
+	<name>dual_proc_wrapper_hw_platform</name>
 	<comment>Created by SDK v2016.2</comment>
 	<projects>
 	</projects>
@@ -11,7 +11,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1490099396731</id>
+			<id>0</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -20,7 +20,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1490099396733</id>
+			<id>0</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -29,7 +29,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1490099396734</id>
+			<id>0</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
