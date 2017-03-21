@@ -7,6 +7,7 @@ src/RemoteSystemsTempFiles
 src/webtalk
 Debug/
 
+
 # Exclude build products
 
 *.a
@@ -16,3 +17,8 @@ Debug/
 *.o
 *.obj
 *.so
+
+
+# Exclude Vivado hardware project
+
+HW_dual_uB/
