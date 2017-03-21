@@ -1,4 +1,4 @@
-create_bd_design "design_1"
+create_bd_design "design_dual_tf0_gpio1"
 
 #-- Processors
 
@@ -162,10 +162,10 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {Master "/microblaze_1
 # Create GPIO 0
 startgroup
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_0
-apply_board_connection -board_interface "btns_5bits" -ip_intf "axi_gpio_0/GPIO" -diagram "design_1" 
+apply_board_connection -board_interface "btns_5bits" -ip_intf "axi_gpio_0/GPIO" -diagram "design_dual_tf0_gpio1" 
 endgroup
 startgroup
-apply_board_connection -board_interface "leds_8bits" -ip_intf "/axi_gpio_0/GPIO2" -diagram "design_1" 
+apply_board_connection -board_interface "leds_8bits" -ip_intf "/axi_gpio_0/GPIO2" -diagram "design_dual_tf0_gpio1" 
 endgroup
 startgroup
 set_property -dict [list CONFIG.C_INTERRUPT_PRESENT {1}] [get_bd_cells axi_gpio_0]
@@ -174,7 +174,7 @@ endgroup
 # Create GPIO 1
 startgroup
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_1
-apply_board_connection -board_interface "sws_8bits" -ip_intf "axi_gpio_1/GPIO" -diagram "design_1" 
+apply_board_connection -board_interface "sws_8bits" -ip_intf "axi_gpio_1/GPIO" -diagram "design_dual_tf0_gpio1" 
 endgroup
 startgroup
 set_property -dict [list CONFIG.C_INTERRUPT_PRESENT {1}] [get_bd_cells axi_gpio_1]
