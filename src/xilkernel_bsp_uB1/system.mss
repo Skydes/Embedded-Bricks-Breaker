@@ -10,6 +10,7 @@ BEGIN OS
  PARAMETER config_named_sema = true
  PARAMETER config_sema = true
  PARAMETER config_time = true
+ PARAMETER sched_type = SCHED_PRIO
  PARAMETER stdin = ps7_uart_1
  PARAMETER stdout = ps7_uart_1
  PARAMETER sysintc_spec = microblaze_1_axi_intc

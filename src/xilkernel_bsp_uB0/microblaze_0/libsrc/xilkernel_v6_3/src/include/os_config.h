@@ -107,16 +107,6 @@
 
 #define CONFIG_NAMED_SEMA true
 
-#define CONFIG_MSGQ true
-
-#define NUM_MSGQS 10
-
-#define MSGQ_CAPACITY 2
-
-#define CONFIG_ENHANCED_MSGQ true
-
-#define USE_MALLOC true
-
 #define CONFIG_TIME true
 
 #define MAX_TMRS 10

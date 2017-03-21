@@ -85,11 +85,11 @@
 
 #define CONFIG_SCHED true
 
-#define SCHED_TYPE SCHED_RR
+#define SCHED_TYPE SCHED_PRIO
 
 #define N_PRIO 32
 
-#define CONFIG_RRSCHED true
+#define CONFIG_PRIOSCHED true
 
 #define MAX_READYQ 10
 
