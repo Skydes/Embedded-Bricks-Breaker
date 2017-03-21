@@ -40,7 +40,7 @@ void* thread_display() {
 	XTft_Config *TftConfigPtr;
 	u32 TftDeviceId = TFT_DEVICE_ID;
 
-	Model_state data;
+	Model_state data, prev_data[2];
 
 	safe_printf("[INFO uB0] \t Configuring the display\r\n");
 
@@ -69,38 +69,41 @@ void* thread_display() {
 	draw_layout(&TftInstance);
 
 	/* Test msg */
-	data.game_state = RUNNING;
-	data.time = 46;
-	data.score = 11;
-	data.ball.vel = 250;
-	data.ball.x = BZ_OFFSET_X+BZ_W/2;
-	data.ball.y = BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y-BAR_H-BALL_RADIUS;
-	data.bar_pos = BZ_W/2;
-	for(u8 col = 0; col < NB_COLUMNS; col++)
-		for(u8 row = 0; row < NB_ROWS; row++) {
-			if( (col == 1 || col == 5) && (row > 1) && (row < 5))
-				data.bricks[col][row] = GOLDEN;
-			else
-				data.bricks[col][row] = NORMAL;
-		}
+//	data.game_state = RUNNING;
+//	data.time = 46;
+//	data.score = 11;
+//	data.ball.vel = 250;
+//	data.ball.x = BZ_OFFSET_X+BZ_W/2;
+//	data.ball.y = BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y-BAR_H-BALL_RADIUS;
+//	data.bar_pos = BZ_W/2;
+//	for(u8 col = 0; col < NB_COLUMNS; col++)
+//		for(u8 row = 0; row < NB_ROWS; row++) {
+//			if( (col == 1 || col == 5) && (row > 1) && (row < 5))
+//				data.bricks[col][row] = GOLDEN;
+//			else
+//				data.bricks[col][row] = NORMAL;
+//		}
 
 	// TODO: put all the display routines in parallel: ball, bricks, bar
 	while(1) {
-		//XMbox_ReadBlocking(&mbx_model, (u32*)&data, sizeof(data));
+		XMbox_ReadBlocking(&mbx_model, (u32*)&data, sizeof(data));
+		safe_printf("Display: received bar %u\n\r", data.bar_pos);
+		safe_printf("Received size: %d\n\r", sizeof(data));
 
 		draw_bricks(&TftInstance, data.bricks);
 		draw_ball(&TftInstance, data.ball);
+
+		set_erase();
+		draw_bar(&TftInstance, prev_data[0].bar_pos);
+		set_draw();
 		draw_bar(&TftInstance, data.bar_pos);
 		display_info(&TftInstance, data);
 
 		/* Display message */
-		if(data.game_state != RUNNING)
+		if(data.game_state == WON || data.game_state == LOST)
 			display_msg(&TftInstance, data.game_state);
 
-		while(1){
-			safe_printf("Still alive\n\r");
-			sleep(500);
-		}
+		prev_data[0] = data;
 	}
 }
 

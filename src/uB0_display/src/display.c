@@ -1,5 +1,9 @@
 #include "display.h"
 
+static bool erase = false;
+
+void set_erase() { erase = true; }
+void set_draw() {erase = false; }
 
 void draw_layout(XTft *Tft) {
 	char txt_score[] = TXT_SCORE;
@@ -27,15 +31,17 @@ void display_msg(XTft *Tft, Game_state state) {
 }
 
 void draw_ball(XTft *Tft, Ball ball) {
-	drawCircle(Tft, ball.x, ball.y, BALL_RADIUS, ORANGE, true);
+	u32 color = erase ? WHITE : ORANGE;
+	drawCircle(Tft, ball.x, ball.y, BALL_RADIUS, color, true);
 }
 
 void draw_bar(XTft *Tft, u16 bar_pos) {
+	u32 color = erase ? WHITE : GREEN;
 	drawBox(Tft, BZ_OFFSET_X+bar_pos-BAR_W/2,
 				 BZ_OFFSET_X+bar_pos+BAR_W/2,
 				 BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y-BAR_H/2,
 				 BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y+BAR_H/2,
-				 PURPLE, true);
+				 color, true);
 }
 
 void draw_bricks(XTft *Tft, Brick_state bricks[NB_COLUMNS][NB_ROWS]) {

@@ -11,6 +11,8 @@
 #include "config.h"
 #include "config_display.h"
 
+void set_erase();
+void set_draw();
 
 void draw_layout(XTft *Tft);
 void display_msg(XTft *Tft, Game_state state);
