@@ -2,6 +2,7 @@
 #ifndef SRC_CONFIG_DISPLAY_H_
 #define SRC_CONFIG_DISPLAY_H_
 
+#include "xtft_hw.h"
 
 #define TFT_DEVICE_ID       XPAR_TFT_0_DEVICE_ID
 #define DDR_HIGH_ADDR       XPAR_PS7_DDR_0_S_AXI_HIGHADDR

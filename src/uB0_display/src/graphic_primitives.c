@@ -1,15 +1,8 @@
-//#include "xtft.h"
-//#include "xtft_hw.h"
-//
-//#include "config.h"
-//#include "config_display.h"
-//
-//#define MAX_X               (XTFT_DISPLAY_WIDTH - 1)
-//#define MAX_Y               (XTFT_DISPLAY_HEIGHT - 1)
-
 #include "graphic_primitives.h"
 
+
 void setPixel(XTft *Tft, int ColVal, int RowVal, u32 PixelVal);
+
 
 void drawBox(XTft *Tft, u16 x1, u16 x2, u16 y1, u16 y2, u32 color, bool filled) {
 	//xil_printf("Drawing box between: %u,%u, ; %u,%u\n\r", x1, y1, x2, y2);

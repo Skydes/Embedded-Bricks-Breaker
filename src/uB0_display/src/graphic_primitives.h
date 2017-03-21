@@ -1,9 +1,3 @@
-/*
- * graphic_primitives.h
- *
- *  Created on: Mar 21, 2017
- *      Author: pe_s
- */
 
 #ifndef SRC_GRAPHIC_PRIMITIVES_H_
 #define SRC_GRAPHIC_PRIMITIVES_H_
@@ -11,7 +5,6 @@
 #include <stdbool.h>
 
 #include "xtft.h"
-#include "xtft_hw.h"
 
 #include "config.h"
 #include "config_display.h"
