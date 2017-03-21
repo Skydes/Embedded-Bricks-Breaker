@@ -5,7 +5,7 @@ src/.metadata
 src/SDK.log
 src/RemoteSystemsTempFiles
 src/webtalk
-
+Debug/
 
 # Exclude build products
 

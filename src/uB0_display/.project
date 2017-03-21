@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>uB0_display</name>
-	<comment>Created by SDK v2016.2. xilkernel_bsp_MB0 - microblaze_0</comment>
+	<comment>Created by SDK v2016.2. xilkernel_bsp_uB0 - microblaze_0</comment>
 	<projects>
-		<project>xilkernel_bsp_MB0</project>
+		<project>xilkernel_bsp_uB0</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
