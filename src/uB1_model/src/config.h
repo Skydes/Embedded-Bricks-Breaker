@@ -38,11 +38,12 @@
 
 
 /* Useful data types */
-typedef enum Game_state {RUNNING, WON, LOST} Game_state;
+typedef enum Game_state {WAITING, RUNNING, WON, LOST} Game_state;
 typedef enum Brick_state {BROKEN, NORMAL, GOLDEN} Brick_state;
 
 typedef struct {
-	u16 x, y, vel, angle;
+	u16 vel, angle;
+	int x, y;
 } Ball;
 
 typedef struct {
