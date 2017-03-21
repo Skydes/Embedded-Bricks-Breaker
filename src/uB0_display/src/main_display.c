@@ -1,6 +1,5 @@
 #include "xmk.h"
 #include "xtft.h"
-#include "xgpio.h"
 #include "xparameters.h"
 #include "xmutex.h"
 #include "xmbox.h"
@@ -48,12 +47,12 @@ void* thread_display() {
 	/* Get address of the XTft_Config structure for the given device id */
 	TftConfigPtr = XTft_LookupConfig(TftDeviceId);
 	if (TftConfigPtr == (XTft_Config *)NULL)
-		return XST_FAILURE;
+		return (void*) XST_FAILURE;
 
 	/* Initialize all the TftInstance members */
 	Status = XTft_CfgInitialize(&TftInstance, TftConfigPtr, TftConfigPtr->BaseAddress);
 	if (Status != XST_SUCCESS)
-		return XST_FAILURE;
+		return (void*) XST_FAILURE;
 
 	/* Set background color to white and clean each buffer */
 	frames_cnt = 0;
@@ -124,24 +123,24 @@ void* main_prog(void *arg) {
     configPtr_mutex = XMutex_LookupConfig(MUTEX_DEVICE_ID);
     if (configPtr_mutex == (XMutex_Config *)NULL){
         print("[ERROR uB0]\t While configuring the Hardware Mutex\r\n");
-        return XST_FAILURE;
+        return (void*) XST_FAILURE;
     }
     ret = XMutex_CfgInitialize(&mtx_hw, configPtr_mutex, configPtr_mutex->BaseAddress);
     if (ret != XST_SUCCESS){
         print("[ERROR uB0]\t While initializing the Hardware Mutex\r\n");
-        return XST_FAILURE;
+        return (void*) XST_FAILURE;
     }
 
     /* Configure the mailbox */
     configPtr_mailbox = XMbox_LookupConfig(MBOX_DEVICE_ID);
     if (configPtr_mailbox == (XMbox_Config *)NULL) {
     	print("[ERROR uB0]\t While configuring the Mailbox\r\n");
-        return XST_FAILURE;
+        return (void*) XST_FAILURE;
     }
     ret = XMbox_CfgInitialize(&mbx_model, configPtr_mailbox, configPtr_mailbox->BaseAddress);
     if (ret != XST_SUCCESS) {
     	print("[ERROR uB0]\t While initializing the Mailbox\r\n");
-        return XST_FAILURE;
+        return (void*) XST_FAILURE;
     }
 
     /* Display management thread, priority 1 */

@@ -8,6 +8,7 @@ BEGIN OS
  PARAMETER PROC_INSTANCE = microblaze_1
  PARAMETER config_msgq = true
  PARAMETER config_named_sema = true
+ PARAMETER config_pthread_mutex = true
  PARAMETER config_sema = true
  PARAMETER config_time = true
  PARAMETER sched_type = SCHED_PRIO
@@ -25,6 +26,18 @@ BEGIN PROCESSOR
  PARAMETER HW_INSTANCE = microblaze_1
 END
 
+
+BEGIN DRIVER
+ PARAMETER DRIVER_NAME = gpio
+ PARAMETER DRIVER_VER = 4.1
+ PARAMETER HW_INSTANCE = axi_gpio_0
+END
+
+BEGIN DRIVER
+ PARAMETER DRIVER_NAME = gpio
+ PARAMETER DRIVER_VER = 4.1
+ PARAMETER HW_INSTANCE = axi_gpio_1
+END
 
 BEGIN DRIVER
  PARAMETER DRIVER_NAME = tmrctr
