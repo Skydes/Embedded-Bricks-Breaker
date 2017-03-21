@@ -1,0 +1,18 @@
+
+# Exclude log and interface folders
+
+src/.metadata
+src/SDK.log
+src/RemoteSystemsTempFiles
+src/webtalk
+
+
+# Exclude build products
+
+*.a
+*.dll
+*.dylib
+*.exe
+*.o
+*.obj
+*.so
