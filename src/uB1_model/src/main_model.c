@@ -19,6 +19,7 @@
 
 #include "config.h"
 #include "config_model.h"
+#include "timer.h"
 
 int main (void);
 void* main_prog(void *arg);
@@ -27,12 +28,14 @@ static XMbox mbx_display;
 XMutex mtx_hw;
 XGpio gpio_pb;
 
-pthread_t tid_ball, tid_bar;
-sem_t sem_debounce;
+pthread_t tid_ball, tid_bar, tid_timer_bar;
+sem_t sem_debounce, sem_timer_bar;
 pthread_mutex_t mtx_bar;
 
 Game_state game_state = WAITING;
+//Timer_state timer_state;
 Bar bar;
+Timer* timer_bar;
 
 
 /* Push buttons ISR */
@@ -43,9 +46,9 @@ static void pb_ISR(void *arg) {
 	XGpio_InterruptClear(&gpio_pb,1);
 	u32 pb_state = XGpio_DiscreteRead(&gpio_pb, 1);
 
-	if(pb_state ^ prev_pb_state) {
-		sem_post(&sem_debounce);
+	if( (pb_state ^ prev_pb_state) & ((1 << PB_RIGHT) | (1 << PB_LEFT)) ) {
 		XGpio_InterruptDisable(&gpio_pb,1);
+		sem_post(&sem_debounce);
 		safe_printf("Interrupt: %d \r\n", pb_state); // debug
 	};
 	prev_pb_state = pb_state;
@@ -53,6 +56,10 @@ static void pb_ISR(void *arg) {
 
 float rad(u16 deg) {
 	return deg/360.*M_PI;
+}
+
+int max(int a, int b) {
+	return a>b ? a : b;
 }
 
 //u32 ms(u32 ticks) {
@@ -72,22 +79,26 @@ void* thread_bar() {
 
 	while(1) {
 		sem_wait(&sem_debounce);
-		sleep(DEBOUNCE_DELAY);
-		safe_printf("New reading from the buttons\n\r");
+		//if (timer_state != FINISH)
+		if(!is_finished(timer_bar))
+			sleep(DEBOUNCE_DELAY);
 
 		pb_state = XGpio_DiscreteRead(&gpio_pb, 1);
 		pb_right = (pb_state >> PB_RIGHT) & 1;
 		pb_left = (pb_state >> PB_LEFT) & 1;
 		actual_time = GET_MS;
 
+		safe_printf("New reading from the buttons: %u\n\r", pb_state);
+
 		pthread_mutex_lock(&bar.mtx);
 		if( !(pb_right ^ pb_left) ) { // both released or both pressed
 			if( (actual_time - bar.last_change) < BAR_DELAY_THRESH) {
-				// TODO: Cancel the timer
+				//timer_state = STOP; // Cancel the timer
+				timer_stop(timer_bar);
 				safe_printf("Jumping\n\r");
 				if( !(prev_pb_right ^ prev_pb_left) )
 					bar.jump = NONE;
-				if(prev_pb_right)
+				else if(prev_pb_right)
 					bar.jump = RIGHT;
 				else if(prev_pb_left)
 					bar.jump = LEFT;
@@ -97,8 +108,17 @@ void* thread_bar() {
 			bar.speed = 0;
 		}
 		else {
-				// Launch a 250 ms timer to check if still pressed...
-				// Cancel the timer if released within 250 ms
+			//if (timer_state == FINISH) {
+			if(is_finished(timer_bar)) {
+				bar.jump = NONE;
+				bar.speed = BAR_DEF_SPEED * (pb_right ? 1 : -1);
+				print("Setting speed of bar to continuous\n\r");
+				//timer_state = STOP;
+				timer_stop(timer_bar);
+			}
+			else
+				//sem_post(&sem_timer_bar);
+				timer_start(timer_bar);
 		}
 		bar.last_change = actual_time;
 		pthread_mutex_unlock(&bar.mtx);
@@ -106,6 +126,39 @@ void* thread_bar() {
 		prev_pb_left = pb_left;
 		XGpio_InterruptEnable(&gpio_pb,1);
 	}
+}
+
+//void* timer_bar() {
+//	timer_state = STOP;
+//	u32 launch_time;
+//	while(1) {
+//		switch(timer_state){
+//			case STOP:
+//				sem_wait(&sem_timer_bar);
+//				launch_time = GET_MS;
+//				timer_state = RUN;
+//				break;
+//			case RUN:
+//				if( (GET_MS - launch_time) > BAR_DELAY_THRESH) {
+//					timer_state = FINISH;
+//					XGpio_InterruptDisable(&gpio_pb,1);
+//					sem_post(&sem_debounce);
+//				}
+//				else
+//					sleep(1);
+//				break;
+//			case FINISH:
+//				sleep(1);
+//				break;
+//		}
+//
+//
+//	}
+//}
+
+void timer_bar_cb() {
+	XGpio_InterruptDisable(&gpio_pb,1);
+	sem_post(&sem_debounce);
 }
 
 
@@ -132,15 +185,17 @@ void* thread_ball() {
 
 	while(1) {
 
-		safe_printf("Updating ball\n\r");
+		//safe_printf("Updating ball\n\r");
 		/* Update Bar position */
 		pthread_mutex_lock(&bar.mtx);
 		switch(bar.jump) {
 			case RIGHT:
 				bar.pos += BAR_JUMP_DIST;
+				print("Jump right\r\n");
 				break;
 			case LEFT:
 				bar.pos -= BAR_JUMP_DIST;
+				print("Jump left\r\n");
 				break;
 			default:
 				bar.pos += bar.speed*UPDATE_S;
@@ -149,8 +204,8 @@ void* thread_ball() {
 		pthread_mutex_unlock(&bar.mtx);
 
 		/* Enforce screen width limits */
-		if(bar.pos < BAR_W/2)
-			bar.pos = BAR_W/2;
+		if(bar.pos < (BAR_W/2 + 1))
+			bar.pos = BAR_W/2 + 1;
 		else if(bar.pos >= (BZ_W - BAR_W/2))
 			bar.pos = BZ_W - BAR_W/2 - 1;
 
@@ -161,11 +216,15 @@ void* thread_ball() {
 
 		model_state.ball = ball_new;
 		model_state.bar_pos = bar.pos;
-		safe_printf("Position of bar: %u\n\r", model_state.bar_pos);
-		safe_printf("Size sent: %d\n\r", sizeof(model_state));
+		//safe_printf("Position of bar: %u\n\r", model_state.bar_pos);
+		//safe_printf("Size sent: %d\n\r", sizeof(model_state));
 
 		actual_time = GET_MS;
-		//sleep((int)fmax(0,actual_time - (int) last_sent));
+		//xil_printf("Last: %u\t New: %u", last_sent, actual_time);
+		int wait_time = UPDATE_MS - (int) actual_time + (int) last_sent;
+		safe_printf("Wait time: %d\n\r", wait_time);
+		sleep(max(wait_time,0));
+		last_sent = GET_MS;
 		XMbox_WriteBlocking(&mbx_display, (u32*)&model_state, sizeof(model_state));
 	}
 }
@@ -180,6 +239,7 @@ void* main_prog(void *arg) {
     print("[INFO uB1] \t Starting configuration\r\n");
 
     sem_init(&sem_debounce, 1, 0);
+    //sem_init(&sem_timer_bar, 1, 0);
 
     /* Configure the HW Mutex */
     configPtr_mutex = XMutex_LookupConfig(MUTEX_DEVICE_ID);
@@ -214,8 +274,22 @@ void* main_prog(void *arg) {
 						 pb_ISR, &gpio_pb);
 	enable_interrupt(XPAR_MICROBLAZE_1_AXI_INTC_AXI_GPIO_0_IP2INTC_IRPT_INTR);
 
+	/* Bar timer thread, priority 1 */
+//    pthread_attr_init(&attr);
+//    sched_par.sched_priority = 1;
+//    pthread_attr_setschedparam(&attr, &sched_par);
+//    ret = pthread_create (&tid_timer_bar, &attr, (void*)timer_bar, NULL);
+//    if (ret != 0) {
+//        xil_printf("[ERROR uB1]\t (%d) launching timer_bar\r\n", ret);
+//        return (void*) XST_FAILURE;
+//    }
+//    else
+//        xil_printf("[INFO uB1] \t timer_bar launched with ID %d \r\n", tid_timer_bar);
+
+	timer_bar = timer_init(BAR_DELAY_THRESH, &timer_bar_cb);
+
     /* Bar management thread, priority 1 */
-    pthread_attr_init (&attr);
+    pthread_attr_init(&attr);
     sched_par.sched_priority = 1;
     pthread_attr_setschedparam(&attr, &sched_par);
     ret = pthread_create (&tid_bar, &attr, (void*)thread_bar, NULL);
@@ -224,7 +298,7 @@ void* main_prog(void *arg) {
         return (void*) XST_FAILURE;
     }
     else
-        xil_printf("[INFO uB1] \t Thread_bar launched with ID %d \r\n", tid_bar);
+        xil_printf("[INFO uB1] \t thread_bar launched with ID %d \r\n", tid_bar);
 
     /* Ball management thread, priority 1 */
     pthread_attr_init (&attr);
@@ -236,7 +310,7 @@ void* main_prog(void *arg) {
         return (void*) XST_FAILURE;
     }
     else
-        xil_printf("[INFO uB1] \t Thread_ball launched with ID %d \r\n", tid_ball);
+        xil_printf("[INFO uB1] \t thread_ball launched with ID %d \r\n", tid_ball);
 
 
 
