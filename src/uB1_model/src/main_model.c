@@ -79,7 +79,6 @@ void* thread_bar() {
 
 	while(1) {
 		sem_wait(&sem_debounce);
-		//if (timer_state != FINISH)
 		if(!is_finished(timer_bar))
 			sleep(DEBOUNCE_DELAY);
 
@@ -93,7 +92,6 @@ void* thread_bar() {
 		pthread_mutex_lock(&bar.mtx);
 		if( !(pb_right ^ pb_left) ) { // both released or both pressed
 			if( (actual_time - bar.last_change) < BAR_DELAY_THRESH) {
-				//timer_state = STOP; // Cancel the timer
 				timer_stop(timer_bar);
 				safe_printf("Jumping\n\r");
 				if( !(prev_pb_right ^ prev_pb_left) )
@@ -108,16 +106,13 @@ void* thread_bar() {
 			bar.speed = 0;
 		}
 		else {
-			//if (timer_state == FINISH) {
 			if(is_finished(timer_bar)) {
 				bar.jump = NONE;
 				bar.speed = BAR_DEF_SPEED * (pb_right ? 1 : -1);
 				print("Setting speed of bar to continuous\n\r");
-				//timer_state = STOP;
 				timer_stop(timer_bar);
 			}
 			else
-				//sem_post(&sem_timer_bar);
 				timer_start(timer_bar);
 		}
 		bar.last_change = actual_time;
@@ -127,34 +122,6 @@ void* thread_bar() {
 		XGpio_InterruptEnable(&gpio_pb,1);
 	}
 }
-
-//void* timer_bar() {
-//	timer_state = STOP;
-//	u32 launch_time;
-//	while(1) {
-//		switch(timer_state){
-//			case STOP:
-//				sem_wait(&sem_timer_bar);
-//				launch_time = GET_MS;
-//				timer_state = RUN;
-//				break;
-//			case RUN:
-//				if( (GET_MS - launch_time) > BAR_DELAY_THRESH) {
-//					timer_state = FINISH;
-//					XGpio_InterruptDisable(&gpio_pb,1);
-//					sem_post(&sem_debounce);
-//				}
-//				else
-//					sleep(1);
-//				break;
-//			case FINISH:
-//				sleep(1);
-//				break;
-//		}
-//
-//
-//	}
-//}
 
 void timer_bar_cb() {
 	XGpio_InterruptDisable(&gpio_pb,1);
@@ -273,18 +240,6 @@ void* main_prog(void *arg) {
 	register_int_handler(XPAR_MICROBLAZE_1_AXI_INTC_AXI_GPIO_0_IP2INTC_IRPT_INTR,
 						 pb_ISR, &gpio_pb);
 	enable_interrupt(XPAR_MICROBLAZE_1_AXI_INTC_AXI_GPIO_0_IP2INTC_IRPT_INTR);
-
-	/* Bar timer thread, priority 1 */
-//    pthread_attr_init(&attr);
-//    sched_par.sched_priority = 1;
-//    pthread_attr_setschedparam(&attr, &sched_par);
-//    ret = pthread_create (&tid_timer_bar, &attr, (void*)timer_bar, NULL);
-//    if (ret != 0) {
-//        xil_printf("[ERROR uB1]\t (%d) launching timer_bar\r\n", ret);
-//        return (void*) XST_FAILURE;
-//    }
-//    else
-//        xil_printf("[INFO uB1] \t timer_bar launched with ID %d \r\n", tid_timer_bar);
 
 	timer_bar = timer_init(BAR_DELAY_THRESH, &timer_bar_cb);
 
