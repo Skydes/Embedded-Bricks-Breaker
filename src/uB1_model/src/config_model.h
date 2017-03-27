@@ -21,6 +21,9 @@
 #define BALL_DEF_SPEED		150
 #define BALL_DEF_ANGLE		270
 
+#define NB_GOLDEN_COLS		2
+#define THRESH_GOLDEN		10
+
 typedef enum {NONE, LEFT, RIGHT} Bar_jump;
 
 typedef struct {
@@ -38,10 +41,11 @@ typedef struct {
 } Ball;
 
 typedef struct {
-	bool collision;
+	int idx;
+	bool happened;
 	u16 iter;
 	u16 normal;
-} Collision_result;
+} Collision;
 
 
 #endif
