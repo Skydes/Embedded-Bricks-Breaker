@@ -39,13 +39,13 @@
 
 /* Useful data types */
 typedef enum Game_state {WAITING, RUNNING, WON, LOST} Game_state;
-typedef enum Brick_state {BROKEN, NORMAL, GOLDEN} Brick_state;
+typedef enum Brick {BROKEN, NORMAL, GOLDEN} Brick;
 
 typedef struct {
 	Game_state game_state;
 	u16 ball_posx, ball_posy, bar_pos;
 	u16 ball_vel;
-	Brick_state bricks[NB_COLUMNS][NB_ROWS];
+	Brick bricks[NB_COLUMNS][NB_ROWS];
 	u16 score, time;
 } Model_state;
 

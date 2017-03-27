@@ -44,7 +44,7 @@ void draw_bar(XTft *Tft, u16 bar_pos) {
 				 color, true);
 }
 
-void draw_bricks(XTft *Tft, Brick_state bricks[NB_COLUMNS][NB_ROWS]) {
+void draw_bricks(XTft *Tft, Brick bricks[NB_COLUMNS][NB_ROWS]) {
 	for(u8 col = 0; col < NB_COLUMNS; col++)
 		for(u8 row = 0; row < NB_ROWS; row++) {
 			u32 color;
