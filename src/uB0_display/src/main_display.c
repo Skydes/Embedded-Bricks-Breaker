@@ -90,16 +90,18 @@ void* thread_display() {
 	// TODO: put all the display routines in parallel: ball, bricks, bar
 	while(1) {
 		XMbox_ReadBlocking(&mbx_model, (u32*)&data, sizeof(data));
-		//safe_printf("Display: received bar %u\n\r", data.bar_pos);
+		//safe_printf("Display: received bar %u, ball %u,%u\n\r", data.bar_pos, data.ball_posx, data.ball_posy);
 		//safe_printf("Received size: %d\n\r", sizeof(data));
 
 		//draw_bricks(&TftInstance, data.bricks);
-		//draw_ball(&TftInstance, data.ball);
 
 		set_erase();
 		draw_bar(&TftInstance, prev_data[0].bar_pos);
+		draw_ball(&TftInstance, prev_data[0].ball_posx, prev_data[0].ball_posy);
 		set_draw();
 		draw_bar(&TftInstance, data.bar_pos);
+		draw_ball(&TftInstance, data.ball_posx, data.ball_posy);
+
 		//display_info(&TftInstance, data);
 
 		/* Display message */

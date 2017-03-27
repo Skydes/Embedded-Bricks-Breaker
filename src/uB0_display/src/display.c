@@ -30,9 +30,9 @@ void display_msg(XTft *Tft, Game_state state) {
 	writeText(Tft, BZ_OFFSET_X+(BZ_W-size*CHAR_W)/2, BZ_OFFSET_Y+(BZ_H-CHAR_H)/2, buf, WHITE);
 }
 
-void draw_ball(XTft *Tft, Ball ball) {
+void draw_ball(XTft *Tft, u16 posx, u16 posy) {
 	u32 color = erase ? WHITE : ORANGE;
-	drawCircle(Tft, ball.x, ball.y, BALL_RADIUS, color, true);
+	drawCircle(Tft, BZ_OFFSET_X+posx, BZ_OFFSET_Y+posy, BALL_R, color, true);
 }
 
 void draw_bar(XTft *Tft, u16 bar_pos) {
@@ -70,10 +70,10 @@ void display_info(XTft *Tft, Model_state data) {
 	char buf[256];
 	u8 nb_bricks = 0;
 
-	sprintf(buf, "%03u", data.score);
+	sprintf(buf, "%03u", data.score); // TODO: replace with a lighter routine
 	writeText(Tft, TXT_OFFSET_X, SCORE_OFFSET_Y+CHAR_H, buf, BLACK);
 
-	sprintf(buf, "%3u", data.ball.vel);
+	sprintf(buf, "%3u", data.ball_vel);
 	writeText(Tft, TXT_OFFSET_X, SPEED_OFFSET_Y+CHAR_H, buf, BLACK);
 
 	for(u8 col = 0; col < NB_COLUMNS; col++)

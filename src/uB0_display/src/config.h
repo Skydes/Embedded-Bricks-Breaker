@@ -25,7 +25,7 @@
 #define BRICK_OFFSET		5
 
 /* Ball parameters */
-#define BALL_RADIUS			7
+#define BALL_R				7
 
 /* Bar parameters */
 #define BAR_W				80
@@ -42,14 +42,9 @@ typedef enum Game_state {WAITING, RUNNING, WON, LOST} Game_state;
 typedef enum Brick_state {BROKEN, NORMAL, GOLDEN} Brick_state;
 
 typedef struct {
-	u16 vel, angle;
-	int x, y;
-} Ball;
-
-typedef struct {
 	Game_state game_state;
-	Ball ball;
-	u16 bar_pos;
+	u16 ball_posx, ball_posy, bar_pos;
+	u16 ball_vel;
 	Brick_state bricks[NB_COLUMNS][NB_ROWS];
 	u16 score, time;
 } Model_state;

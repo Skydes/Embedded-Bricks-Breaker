@@ -2,12 +2,12 @@
 #ifndef SRC_CONFIG_MODEL_H_
 #define SRC_CONFIG_MODEL_H_
 
-#define UPDATE_MS			40
+#define UPDATE_MS			60
 #define UPDATE_S			UPDATE_MS/1000.
 
 #define GET_MS				sys_xget_clock_ticks()*(SYSTMR_INTERVAL / SYSTMR_CLK_FREQ_KHZ)
 
-#define PB_MIDDLE			0
+#define PB_CENTER			0
 #define PB_DOWN				1
 #define PB_LEFT				2
 #define PB_RIGHT			3
@@ -18,11 +18,10 @@
 #define BAR_JUMP_DIST		25
 #define BAR_DEF_SPEED		200
 
-#define BALL_DEF_SPEED		250
+#define BALL_DEF_SPEED		150
 #define BALL_DEF_ANGLE		270
 
 typedef enum {NONE, LEFT, RIGHT} Bar_jump;
-//typedef enum Timer_state {T_STOPPED, T_RUNNING, T_FINISHED} Timer_state;
 
 typedef struct {
 	pthread_mutex_t mtx;
@@ -31,6 +30,18 @@ typedef struct {
 	u32 last_change;
 	int pos;
 } Bar;
+
+typedef struct {
+	pthread_mutex_t mtx;
+	u16 vel, angle;
+	int x, y;
+} Ball;
+
+typedef struct {
+	bool collision;
+	u16 iter;
+	u16 normal;
+} Collision_result;
 
 
 #endif
