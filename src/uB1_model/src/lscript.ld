@@ -87,7 +87,7 @@ SECTIONS
    *(.rodata.*)
    *(.gnu.linkonce.r.*)
    __rodata_end = .;
-} > microblaze_1_local_memory_ilmb_bram_if_cntlr_microblaze_1_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .sdata2 : {
    . = ALIGN(8);
@@ -114,7 +114,7 @@ SECTIONS
    *(.data.*)
    *(.gnu.linkonce.d.*)
    __data_end = .;
-} > microblaze_1_local_memory_ilmb_bram_if_cntlr_microblaze_1_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .got : {
    *(.got)
@@ -138,7 +138,7 @@ SECTIONS
 
 .gcc_except_table : {
    *(.gcc_except_table)
-} > microblaze_1_local_memory_ilmb_bram_if_cntlr_microblaze_1_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .sdata : {
    . = ALIGN(8);
@@ -184,7 +184,7 @@ SECTIONS
    *(COMMON)
    . = ALIGN(4);
    __bss_end = .;
-} > microblaze_1_local_memory_ilmb_bram_if_cntlr_microblaze_1_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 _SDA_BASE_ = __sdata_start + ((__sbss_end - __sdata_start) / 2 );
 
