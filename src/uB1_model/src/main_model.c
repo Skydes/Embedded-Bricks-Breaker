@@ -33,7 +33,7 @@ XGpio gpio_pb;
 /* Synchronization objects */
 pthread_t tid_ball, tid_bar, tid_timer_bar, tid_col[NB_COLUMNS];
 sem_t sem_debounce, sem_check_collision, sem_arbitration_done;
-pthread_mutex_t mtx_bricks;
+pthread_mutex_t mtx_bricks, mtx_msgq;
 Timer* timer_bar;
 
 /* Model data */
@@ -68,6 +68,10 @@ float rad(u16 deg) {
 
 int max(int a, int b) {
 	return a>b ? a : b;
+}
+
+int min(int a, int b) {
+	return a<b ? a : b;
 }
 
 int sign(double a) {
@@ -162,7 +166,13 @@ void* thread_column(void *arg) {
 
 	Collision colli;
 	Ball ball_new;
+	pthread_mutex_lock(&mtx_msgq);
 	int msgid = msgget(idx+1, IPC_CREAT);
+	pthread_mutex_unlock(&mtx_msgq);
+	if(msgid == -1) {
+		safe_printf ("[col%d]\t Error while opening Message Queue. Errno: %d \r\n", idx, errno);
+		pthread_exit(&errno) ;
+	}
 	colli.idx = idx;
 
 	while(1) {
@@ -214,7 +224,9 @@ void* thread_column(void *arg) {
 			}
 		}
 
+		pthread_mutex_lock(&mtx_msgq);
 		msgsnd(msgid, &colli, sizeof(Collision), 0);
+		pthread_mutex_unlock(&mtx_msgq);
 
 		safe_printf("[col%d]\tWaiting for arbitration\n\r", idx);
 		sem_wait(&sem_arbitration_done);
@@ -276,7 +288,7 @@ void* thread_ball() {
 			u16 iter_max = UPDATE_S*ball.vel;
 			next_colli.idx = -1;
 			next_colli.happened = false;
-//			next_colli.normal = check_angle(ball.angle - 90);
+			ball_new.vel = ball.vel;
 
 			for(next_colli.iter = 1; next_colli.iter < iter_max; next_colli.iter++) {
 				ball_new.x = ball.x + round(next_colli.iter*cos(rad(ball.angle)));
@@ -290,7 +302,7 @@ void* thread_ball() {
 					break;
 				}
 				/* Bounce on right boundary */
-				if( (ball_new.x+BALL_R) >= (BZ_W-1) ) {
+				if( (ball_new.x+BALL_R) >= (BZ_W) ) {
 					next_colli.normal = 180;
 					print("Bounce right wall.\n\r");
 					break;
@@ -333,7 +345,7 @@ void* thread_ball() {
 			sem_wait(&sem_arbitration_done); // cancel last post
 			//safe_printf("[ball]\tUnlocking columns for collision checking\n\r");
 			sem_post(&sem_check_collision);
-			//safe_printf("[ball]\tReceive result\n\r");
+			safe_printf("[ball]\tReceive result\n\r");
 			for(int i  = 0; i < NB_COLUMNS; i++) {
 				int msgid = msgget(i+1, IPC_CREAT);
 				msgrcv(msgid, &column_colli, sizeof(Collision), 0,0 );
@@ -343,9 +355,9 @@ void* thread_ball() {
 				next_colli = column_colli;
 				safe_printf("[ball]\tNew collision detected\n\r");
 			}
-			//safe_printf("[ball]\tResult received\n\r");
+			safe_printf("[ball]\tResult received\n\r");
 			sem_wait(&sem_check_collision); // cancel last post
-			//safe_printf("[ball]\tSending confirmation\n\r");
+			safe_printf("[ball]\tSending confirmation\n\r");
 			/* Confirm the result of the arbitration */
 			sem_post(&sem_arbitration_done);
 
@@ -359,7 +371,6 @@ void* thread_ball() {
 			}
 			else
 				ball_new.angle = ball.angle;
-			ball_new.vel = ball.vel;
 			//safe_printf("New angle is: %d; New pos: %d,%d\n\r", ball_new.angle, ball_new.x, ball_new.y);
 			ball = ball_new;
 		}
@@ -380,7 +391,7 @@ void* thread_ball() {
 		last_sent = GET_MS;
 
 		XMbox_WriteBlocking(&mbx_display, (u32*)&model_state, sizeof(model_state));
-		safe_printf("Model: sent bar %u, ball %u,%u\n\r", model_state.bar_pos, model_state.ball_posx, model_state.ball_posy);
+		//safe_printf("Model: sent bar %u, ball %u,%u\n\r", model_state.bar_pos, model_state.ball_posx, model_state.ball_posy);
 	}
 }
 
@@ -446,6 +457,7 @@ void* main_prog(void *arg) {
     pthread_mutex_init(&ball.mtx, NULL);
     pthread_mutex_init(&bar.mtx, NULL);
     pthread_mutex_init(&mtx_bricks, NULL);
+    pthread_mutex_init(&mtx_msgq, NULL);
 
     /* Configure the HW Mutex */
     configPtr_mutex = XMutex_LookupConfig(MUTEX_DEVICE_ID);
