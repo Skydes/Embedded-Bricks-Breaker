@@ -24,7 +24,7 @@ Timer* timer_init(u32 delay_ms, void (*callback)()) {
 	if (ret != 0)
 		xil_printf("[ERROR]\t (%d) launching timer\r\n", ret);
 	else
-		xil_printf("[INFO] \t timer sucessfully launched with ID %d \r\n", tid);
+		xil_printf("[INFO] \t\t timer launched with ID %d \r\n", tid);
 
 	return timer;
 }
