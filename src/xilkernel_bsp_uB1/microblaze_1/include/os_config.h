@@ -103,13 +103,13 @@
 
 #define MAX_SEM 10
 
-#define MAX_SEM_WAITQ 10
+#define MAX_SEM_WAITQ 15
 
 #define CONFIG_NAMED_SEMA true
 
 #define CONFIG_MSGQ true
 
-#define NUM_MSGQS 10
+#define NUM_MSGQS 15
 
 #define MSGQ_CAPACITY 10
 
@@ -119,6 +119,6 @@
 
 #define CONFIG_TIME true
 
-#define MAX_TMRS 10
+#define MAX_TMRS 12
 
 #endif
