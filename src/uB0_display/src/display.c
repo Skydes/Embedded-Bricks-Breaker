@@ -36,19 +36,38 @@ void draw_ball(XTft *Tft, u16 posx, u16 posy) {
 }
 
 void draw_bar(XTft *Tft, u16 bar_pos) {
-	u32 color = erase ? WHITE : GREEN;
-	drawBox(Tft, BZ_OFFSET_X+bar_pos-BAR_W/2,
-				 BZ_OFFSET_X+bar_pos+BAR_W/2,
-				 BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y-BAR_H/2,
-				 BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y+BAR_H/2,
-				 color, true);
+	u32 color_n = erase ? WHITE : BLUE;
+	u32 color_s = erase ? WHITE : GREEN;
+	u32 color_a = erase ? WHITE : RED;
+
+	u16 y_min = BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y-BAR_H;
+	u16 y_max = BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y;
+
+	// TODO: optimize copy/paste using memcpy for each line ?
+	drawBox(Tft, BZ_OFFSET_X+bar_pos-BAR_N/2,
+				 BZ_OFFSET_X+bar_pos+BAR_N/2,
+				 y_min, y_max, color_n, true);
+	drawBox(Tft, BZ_OFFSET_X+bar_pos-BAR_N/2-BAR_S,
+				 BZ_OFFSET_X+bar_pos-BAR_N/2,
+				 y_min, y_max, color_s, true);
+	drawBox(Tft, BZ_OFFSET_X+bar_pos-BAR_N/2-BAR_S-BAR_A,
+				 BZ_OFFSET_X+bar_pos-BAR_N/2-BAR_S,
+				 y_min, y_max, color_a, true);
+	drawBox(Tft, BZ_OFFSET_X+bar_pos+BAR_N/2,
+				 BZ_OFFSET_X+bar_pos+BAR_N/2+BAR_S,
+				 y_min, y_max, color_s, true);
+	drawBox(Tft, BZ_OFFSET_X+bar_pos+BAR_N/2+BAR_S,
+				 BZ_OFFSET_X+bar_pos+BAR_N/2+BAR_S+BAR_A,
+				 y_min, y_max, color_a, true);
 }
 
-void draw_bricks(XTft *Tft, Brick bricks[NB_COLUMNS][NB_ROWS]) {
+void draw_bricks(XTft *Tft, Brick bricks[NB_COLUMNS][NB_ROWS], Brick bricks_prev[NB_COLUMNS][NB_ROWS]) {
 	for(u8 col = 0; col < NB_COLUMNS; col++)
 		for(u8 row = 0; row < NB_ROWS; row++) {
+			if(bricks[col][row] == bricks_prev[col][row])
+				continue;
 			u32 color;
-			switch(bricks[col][row]) { // TODO: check if new state different than the previous previous one
+			switch(bricks[col][row]) {
 				case NORMAL:
 					color = BLACK;
 					break;
@@ -71,7 +90,8 @@ void display_info(XTft *Tft, Model_state data) {
 	u8 nb_bricks = 0;
 	u32 color = erase ? WHITE : BLACK;
 
-	sprintf(buf, "%03u", data.score); // TODO: replace with a lighter routine
+	// TODO: THIS IS NOT THREAD-SAFE !
+	sprintf(buf, "%03u", data.score);
 	writeText(Tft, TXT_OFFSET_X, SCORE_OFFSET_Y+CHAR_H, buf, color);
 
 	sprintf(buf, "%3u", data.ball_vel);
