@@ -70,6 +70,10 @@ int max(int a, int b) {
 	return a>b ? a : b;
 }
 
+int sign(double a) {
+	return a >= 0 ? 1 : -1;
+}
+
 u16 check_angle(int angle) {
 	int r = angle % 360;
 	return r < 0 ? r + 360 : r;
@@ -232,6 +236,7 @@ void* thread_ball() {
 	u32 actual_time, last_sent = GET_MS;
 	Model_state model_state;
 	Ball ball_new;
+	int offset_x = 0, offset_y = 0;
 	sem_post(&sem_arbitration_done);
 
 	while(1) {
@@ -321,14 +326,14 @@ void* thread_ball() {
 				next_colli.happened = false;
 			}
 
-			safe_printf("[ball]\tComputed collision for boundaries or bar: %d\n\r", next_colli.happened);
+			//safe_printf("[ball]\tComputed collision for boundaries or bar: %d\n\r", next_colli.happened);
 
 			/* Get collision status from columns */
 			Collision column_colli;
 			sem_wait(&sem_arbitration_done); // cancel last post
-			safe_printf("[ball]\tUnlocking columns for collision checking\n\r");
+			//safe_printf("[ball]\tUnlocking columns for collision checking\n\r");
 			sem_post(&sem_check_collision);
-			safe_printf("[ball]\tReceive result\n\r");
+			//safe_printf("[ball]\tReceive result\n\r");
 			for(int i  = 0; i < NB_COLUMNS; i++) {
 				int msgid = msgget(i+1, IPC_CREAT);
 				msgrcv(msgid, &column_colli, sizeof(Collision), 0,0 );
@@ -338,14 +343,19 @@ void* thread_ball() {
 				next_colli = column_colli;
 				safe_printf("[ball]\tNew collision detected\n\r");
 			}
-			safe_printf("[ball]\tResult received\n\r");
+			//safe_printf("[ball]\tResult received\n\r");
 			sem_wait(&sem_check_collision); // cancel last post
-			safe_printf("[ball]\tSending confirmation\n\r");
+			//safe_printf("[ball]\tSending confirmation\n\r");
 			/* Confirm the result of the arbitration */
 			sem_post(&sem_arbitration_done);
 
 			if(next_colli.happened) {
 				ball_new.angle = check_angle(2*next_colli.normal - (int) ball.angle + 180);
+				offset_x = sign(cos(rad(next_colli.normal)))*ceil(fabs(cos(rad(next_colli.normal))));
+				offset_y = sign(sin(rad(next_colli.normal)))*ceil(fabs(sin(rad(next_colli.normal))));
+				safe_printf("Offset x: %d, offset y: %d\n\r", offset_x, offset_y);
+				ball_new.x = ball.x + round(next_colli.iter*cos(rad(ball.angle))) + offset_x;
+				ball_new.y = ball.y + round(next_colli.iter*sin(rad(ball.angle))) + offset_y;
 			}
 			else
 				ball_new.angle = ball.angle;
