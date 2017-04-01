@@ -3,7 +3,7 @@
 static bool erase = false;
 
 void set_erase() { erase = true; }
-void set_draw() {erase = false; }
+void set_draw() { erase = false; }
 
 void draw_layout(XTft *Tft) {
 	char txt_score[] = TXT_SCORE;
@@ -69,12 +69,13 @@ void draw_bricks(XTft *Tft, Brick bricks[NB_COLUMNS][NB_ROWS]) {
 void display_info(XTft *Tft, Model_state data) {
 	char buf[256];
 	u8 nb_bricks = 0;
+	u32 color = erase ? WHITE : BLACK;
 
 	sprintf(buf, "%03u", data.score); // TODO: replace with a lighter routine
-	writeText(Tft, TXT_OFFSET_X, SCORE_OFFSET_Y+CHAR_H, buf, BLACK);
+	writeText(Tft, TXT_OFFSET_X, SCORE_OFFSET_Y+CHAR_H, buf, color);
 
 	sprintf(buf, "%3u", data.ball_vel);
-	writeText(Tft, TXT_OFFSET_X, SPEED_OFFSET_Y+CHAR_H, buf, BLACK);
+	writeText(Tft, TXT_OFFSET_X, SPEED_OFFSET_Y+CHAR_H, buf, color);
 
 	for(u8 col = 0; col < NB_COLUMNS; col++)
 			for(u8 row = 0; row < NB_ROWS; row++)
@@ -82,5 +83,5 @@ void display_info(XTft *Tft, Model_state data) {
 					nb_bricks += 1;
 
 	sprintf(buf, "%2u", nb_bricks);
-	writeText(Tft, TXT_OFFSET_X, BRICKS_OFFSET_Y+CHAR_H, buf, BLACK);
+	writeText(Tft, TXT_OFFSET_X, BRICKS_OFFSET_Y+CHAR_H, buf, color);
 }
