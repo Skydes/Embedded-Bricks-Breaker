@@ -40,7 +40,7 @@ void* thread_display() {
 	XTft_Config *TftConfigPtr;
 	u32 TftDeviceId = TFT_DEVICE_ID;
 
-	Model_state data, prev_data[2];
+	Model_state data, data_prev[NB_FRAMES];
 
 	safe_printf("[INFO uB0] \t Configuring the display\r\n");
 
@@ -58,34 +58,22 @@ void* thread_display() {
 	frames_cnt = 0;
 	TftInstance.TftConfig.VideoMemBaseAddr = frames_addr[frames_cnt];
 	for(u8 i = 0; i < NB_FRAMES; i++) {
+		/* Initialize previous states */
+		data_prev[frames_cnt].bar_pos = BZ_W/2;
+		data_prev[frames_cnt].ball_posx = BZ_W/2;
+		data_prev[frames_cnt].ball_posy = BZ_H - BAR_OFFSET_Y - BAR_H - BALL_R;
+
 		XTft_SetColor(&TftInstance, 0, WHITE);
 		XTft_ClearScreen(&TftInstance);
+		draw_layout(&TftInstance);
 		frames_cnt = nextCnt();
 		TftInstance.TftConfig.VideoMemBaseAddr = frames_addr[frames_cnt];
 	}
 
 	/* Initialise previous states */
-	prev_data[0].bar_pos = BZ_W/2;
+
 
 	safe_printf("[INFO uB0] \t Listening to the model\r\n");
-
-	draw_layout(&TftInstance);
-
-	/* Test msg */
-//	data.game_state = RUNNING;
-//	data.time = 46;
-//	data.score = 11;
-//	data.ball.vel = 250;
-//	data.ball.x = BZ_OFFSET_X+BZ_W/2;
-//	data.ball.y = BZ_OFFSET_Y+BZ_H-BAR_OFFSET_Y-BAR_H-BALL_RADIUS;
-//	data.bar_pos = BZ_W/2;
-//	for(u8 col = 0; col < NB_COLUMNS; col++)
-//		for(u8 row = 0; row < NB_ROWS; row++) {
-//			if( (col == 1 || col == 5) && (row > 1) && (row < 5))
-//				data.bricks[col][row] = GOLDEN;
-//			else
-//				data.bricks[col][row] = NORMAL;
-//		}
 
 	// TODO: put all the display routines in parallel: ball, bricks, bar
 	while(1) {
@@ -93,22 +81,33 @@ void* thread_display() {
 		//safe_printf("Display: received bar %u, ball %u,%u\n\r", data.bar_pos, data.ball_posx, data.ball_posy);
 		//safe_printf("Received size: %d\n\r", sizeof(data));
 
-		//draw_bricks(&TftInstance, data.bricks);
-
-		set_erase();
-		draw_bar(&TftInstance, prev_data[0].bar_pos);
-		draw_ball(&TftInstance, prev_data[0].ball_posx, prev_data[0].ball_posy);
-		set_draw();
+		/* Write data */
+		draw_bricks(&TftInstance, data.bricks, data_prev[frames_cnt].bricks);
 		draw_bar(&TftInstance, data.bar_pos);
 		draw_ball(&TftInstance, data.ball_posx, data.ball_posy);
-
-		//display_info(&TftInstance, data);
+		display_info(&TftInstance, data);
 
 		/* Display message */
 		if(data.game_state == WON || data.game_state == LOST)
 			display_msg(&TftInstance, data.game_state);
 
-		prev_data[0] = data;
+		data_prev[frames_cnt] = data;
+
+        /* Wait previous frame to be displayed */
+        while (XTft_GetVsyncStatus(&TftInstance) != XTFT_IESR_VADDRLATCH_STATUS_MASK);
+        /* Force display to the current frame buffer */
+        XTft_SetFrameBaseAddr(&TftInstance, frames_addr[frames_cnt]);
+        /* Switch frame counter */
+        frames_cnt = nextCnt();
+        /* Set the new frame address for subsequent draws */
+        TftInstance.TftConfig.VideoMemBaseAddr = frames_addr[frames_cnt];
+
+        /* Erase what can be erased */
+        set_erase();
+		draw_bar(&TftInstance, data_prev[frames_cnt].bar_pos);
+		draw_ball(&TftInstance, data_prev[frames_cnt].ball_posx, data_prev[frames_cnt].ball_posy);
+        set_draw();
+
 	}
 }
 
