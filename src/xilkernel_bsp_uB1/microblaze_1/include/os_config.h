@@ -51,7 +51,7 @@
 
 #define CONFIG_PTHREAD_SUPPORT true
 
-#define MAX_PTHREADS 10
+#define MAX_PTHREADS 15
 
 #define PTHREAD_STACK_SIZE 1000
 
@@ -97,7 +97,7 @@
 
 #define CONFIG_PRIOSCHED true
 
-#define MAX_READYQ 10
+#define MAX_READYQ 15
 
 #define CONFIG_SEMA true
 
