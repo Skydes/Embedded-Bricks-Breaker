@@ -198,7 +198,7 @@ _SDA2_BASE_ = __sdata2_start + ((__sbss2_end - __sdata2_start) / 2 );
    _heap_start = .;
    . += _HEAP_SIZE;
    _heap_end = .;
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .stack (NOLOAD) : {
    _stack_end = .;
