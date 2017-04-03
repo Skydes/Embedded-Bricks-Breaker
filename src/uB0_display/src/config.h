@@ -17,7 +17,7 @@
 #define MBOX_DEVICE_ID		XPAR_MBOX_0_DEVICE_ID
 
 /* Bricks parameters */
-#define NB_COLUMNS          10
+#define NB_COLUMNS          2
 #define NB_ROWS				8
 #define NB_GOLD_COLUMNS     2
 #define BRICK_H				15
