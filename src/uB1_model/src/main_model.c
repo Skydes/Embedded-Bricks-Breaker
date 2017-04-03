@@ -10,7 +10,8 @@
 #include <sys/msg.h>
 #include <sys/ipc.h>
 #include <sys/intr.h>
-#include <sys/timer.h> // for sleep
+#include <sys/timer.h>
+#include <sys/process.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -163,11 +164,11 @@ void* thread_column(void *arg) {
 	u8 idx = *((int *) arg); // local context copy
 	free(arg);
 	safe_printf("[INFO uB1] \t thread_column_%d launched with ID %d \r\n", idx, tid_col[idx]);
-
 	Collision colli;
     colli.idx = idx;
     Ball ball_new;
     u8 nb_bricks = NB_ROWS;
+    double cosinus, sinus;
     
 	pthread_mutex_lock(&mtx_msgq);
 	int msgid = msgget(idx+1, IPC_CREAT);
@@ -180,16 +181,18 @@ void* thread_column(void *arg) {
 	while(1) {
 		sem_wait(&sem_check_collision);
 		sem_post(&sem_check_collision);
-		safe_printf("[col%d]\tStarting collision check\n\r", idx);
+//		safe_printf("[col%d]\tStarting collision check\n\r", idx);
 
 		/* Check collision using the shared structure ball */
 		u16 iter_max = UPDATE_S*ball.vel;
 		u8 row;
 		colli.happened = false;
+		cosinus = cos(rad(ball.angle));
+		sinus = sin(rad(ball.angle));
 
 		for(colli.iter = 1; (colli.iter < iter_max) && !colli.happened; colli.iter++) {
-			ball_new.x = ball.x + round(colli.iter*cos(rad(ball.angle))); // TODO: optimize by caching the values returned by cos and sin
-			ball_new.y = ball.y + round(colli.iter*sin(rad(ball.angle)));
+			ball_new.x = ball.x + round(colli.iter*cosinus);
+			ball_new.y = ball.y + round(colli.iter*sinus);
 
 			int dist_x = ball_new.x - (BRICK_OFFSET + BRICK_W/2 + idx*(BRICK_W + BRICK_OFFSET));
 			if( (abs(dist_x) > (BRICK_W/2 + BALL_R)) || (ball_new.y > (NB_ROWS*(BRICK_OFFSET+BRICK_H)+BALL_R)) )
@@ -229,7 +232,7 @@ void* thread_column(void *arg) {
 		msgsnd(msgid, &colli, sizeof(Collision), 0);
 		pthread_mutex_unlock(&mtx_msgq);
 
-		safe_printf("[col%d]\tWaiting for arbitration\n\r", idx);
+//		safe_printf("[col%d]\tWaiting for arbitration\n\r", idx);
 		sem_wait(&sem_arbitration_done);
 		sem_post(&sem_arbitration_done);
 
@@ -241,8 +244,8 @@ void* thread_column(void *arg) {
 			remaining_bricks--;
 			pthread_mutex_unlock(&mtx_bricks);
             nb_bricks--;
-            if(nb_bricks == 0)
-                pthread_exit(NULL);
+//            if(nb_bricks == 0)
+//            pthread_exit(0);
 		}
 	}
 }
@@ -253,8 +256,9 @@ void* thread_ball() {
 	Model_state model_state;
 	Ball ball_new;
 	int offset_x, offset_y, offset_angle, offset_vel;
-    u16 iter_tot = 0;
+	double cosinus, sinus;
     p_stat p_info;
+    Collision column_colli;
 	sem_post(&sem_arbitration_done);
 
 	while(1) {
@@ -268,6 +272,11 @@ void* thread_ball() {
 		pthread_mutex_unlock(&mtx_bricks);
 
 		if(game_state == RUNNING) {
+
+			/* Launch collision checking with bricks */
+			sem_wait(&sem_arbitration_done); // cancel last post
+//			safe_printf("[ball]\tUnlocking columns for collision checking\n\r");
+			sem_post(&sem_check_collision);
 
 			/* Update Bar position */
 			pthread_mutex_lock(&bar.mtx);
@@ -299,34 +308,37 @@ void* thread_ball() {
             offset_angle = 0;
             offset_vel = 0;
 
+            cosinus = cos(rad(ball.angle));
+            sinus = sin(rad(ball.angle));
+
 			for(next_colli.iter = 1; next_colli.iter < iter_max; next_colli.iter++) {
-				ball_new.x = ball.x + round(next_colli.iter*cos(rad(ball.angle)));
-				ball_new.y = ball.y + round(next_colli.iter*sin(rad(ball.angle)));
+				ball_new.x = ball.x + round(next_colli.iter*cosinus);
+				ball_new.y = ball.y + round(next_colli.iter*sinus);
 				next_colli.happened = true;
 
 				/* Bounce on left boundary */
 				if( (ball_new.x-BALL_R) <= 0) {
 					next_colli.normal = 0;
-					print("Bounce left wall.\n\r");
+//					print("Bounce left wall.\n\r");
 					break;
 				}
 				/* Bounce on right boundary */
 				if( (ball_new.x+BALL_R) >= (BZ_W) ) {
 					next_colli.normal = 180;
-					print("Bounce right wall.\n\r");
+//					print("Bounce right wall.\n\r");
 					break;
 				}
 				/* Bounce on top */
 				if( (ball_new.y-BALL_R) <= 0) {
 					next_colli.normal = 90;
-					print("Bounce top.\n\r");
+//					print("Bounce top.\n\r");
 					break;
 				}
 				/* Reach bottom */
 				if((ball_new.y+BALL_R) >= BZ_H) {
 					//game_state = LOST;
 					next_colli.normal = 270;
-					print("Lost game...\n\r");
+//					print("Lost game...\n\r");
 					break;
 				}
 				/* Bounce on corner of bar */
@@ -334,14 +346,14 @@ void* thread_ball() {
 				int dy = BZ_H-BAR_OFFSET_Y-BAR_H-ball_new.y;
 				if( (dx*dx + dy*dy) < (BALL_R*BALL_R)) {
 					next_colli.normal = (ball_new.x < bar.pos) ? 225 : 315;
-					print("Bounce on corner of bar.\n\r");
+//					print("Bounce on corner of bar.\n\r");
 					break;
 				}
 				/* Bounce on flat edge of bar */
 				if( ((ball_new.y+BALL_R) >= (BZ_H-BAR_OFFSET_Y-BAR_H))
 					&& (abs(ball_new.x-bar.pos) <= BAR_W/2) ) {
 					next_colli.normal = 270;
-					print("Bounce on flat bar.\n\r");
+//					print("Bounce on flat bar.\n\r");
                     /* Bounce on A segment */
                     if(abs(ball_new.x-bar.pos) > (BAR_N/2+BAR_S))
                         offset_angle = BAR_ANGLE_CHANGE*sign(ball_new.x-bar.pos);
@@ -353,16 +365,11 @@ void* thread_ball() {
 				next_colli.happened = false;
 			}
 
-			//safe_printf("[ball]\tComputed collision for boundaries or bar: %d\n\r", next_colli.happened);
-
-			/* Get collision status from columns */
-			Collision column_colli;
-			sem_wait(&sem_arbitration_done); // cancel last post
-			//safe_printf("[ball]\tUnlocking columns for collision checking\n\r");
-			sem_post(&sem_check_collision);
-			safe_printf("[ball]\tReceive result\n\r");
+			/* Receive result from collision checking with bricks */
+//			safe_printf("[ball]\tReceive result from columns\n\r");
 			for(int i  = 0; i < NB_COLUMNS; i++) {
                 process_status(tid_col[i],&p_info);
+//                safe_printf("[ball]\t Col%d, status: %d\n\r", i, p_info.state);
                 if(p_info.state == PROC_DEAD) // no brick left
                     continue;
 				int msgid = msgget(i+1, IPC_CREAT);
@@ -373,36 +380,33 @@ void* thread_ball() {
 				next_colli = column_colli;
 				safe_printf("[ball]\tNew collision detected\n\r");
 			}
-			safe_printf("[ball]\tResult received\n\r");
+//			safe_printf("[ball]\tResult received\n\r");
 			sem_wait(&sem_check_collision); // cancel last post
-			safe_printf("[ball]\tSending confirmation\n\r");
+//			safe_printf("[ball]\tSending confirmation\n\r");
 			/* Confirm the result of the arbitration */
 			sem_post(&sem_arbitration_done);
 
 			if(next_colli.happened) {
 				ball_new.angle = check_angle(2*next_colli.normal - (int) ball.angle + 180);
-				offset_x = sign(cos(rad(next_colli.normal)))*ceil(fabs(cos(rad(next_colli.normal))));
-				offset_y = sign(sin(rad(next_colli.normal)))*ceil(fabs(sin(rad(next_colli.normal))));
+				offset_x = sign(cos(rad(next_colli.normal)))*round(fabs(cos(rad(next_colli.normal))));
+				offset_y = sign(sin(rad(next_colli.normal)))*round(fabs(sin(rad(next_colli.normal))));
 				safe_printf("Offset x: %d, offset y: %d\n\r", offset_x, offset_y);
 				ball_new.x = ball.x + round(next_colli.iter*cos(rad(ball.angle))) + offset_x;
 				ball_new.y = ball.y + round(next_colli.iter*sin(rad(ball.angle))) + offset_y;
                 
                 if(next_colli.idx == -1) {
                     if(offset_angle > 0)
-                        ball_new.angle = max(ball_new.angle+offset_angle,BAR_MAX_ANGLE);
+                        ball_new.angle = min(ball_new.angle+offset_angle,BAR_MAX_ANGLE);
                     if(offset_angle < 0)
-                        ball_new.angle = min(ball_new.angle+offset_angle,BAR_MIN_ANGLE);
+                        ball_new.angle = max(ball_new.angle+offset_angle,BAR_MIN_ANGLE);
                     if(offset_vel > 0)
-                        ball_new.vel = max(ball_new.vel+offset_vel,BALL_MAX_VEL);
+                        ball_new.vel = min(ball_new.vel+offset_vel,BALL_MAX_VEL);
                     if(offset_vel < 0)
-                        ball_new.vel = min(ball_new.vel+offset_vel,BALL_MIN_VEL);
+                        ball_new.vel = max(ball_new.vel+offset_vel,BALL_MIN_VEL);
                 }
 			}
-			//safe_printf("New angle is: %d; New pos: %d,%d\n\r", ball_new.angle, ball_new.x, ball_new.y);
+//			safe_printf("New angle is: %d; New pos: %d,%d\n\r", ball_new.angle, ball_new.x, ball_new.y);
 			ball = ball_new;
-            
-//            iter_tot += next_colli.iter;
-//            if(iter_tot < iter_max
 		}
 
 		/* Prepare message to be sent */
@@ -421,7 +425,7 @@ void* thread_ball() {
 		last_sent = GET_MS;
 
 		XMbox_WriteBlocking(&mbx_display, (u32*)&model_state, sizeof(model_state));
-		//safe_printf("Model: sent bar %u, ball %u,%u\n\r", model_state.bar_pos, model_state.ball_posx, model_state.ball_posy);
+//		safe_printf("Model: sent bar %u, ball %u,%u\n\r", model_state.bar_pos, model_state.ball_posx, model_state.ball_posy);
 	}
 }
 
@@ -436,14 +440,14 @@ void init_game() {
 	pthread_mutex_unlock(&bar.mtx);
 
 	pthread_mutex_lock(&ball.mtx);
-	ball.x = 25;//BZ_W / 2;
+	ball.x = 25; //BZ_W/2;
 	ball.y = BZ_H - BAR_OFFSET_Y - BAR_H - BALL_R - 80;
 	ball.vel = BALL_DEF_SPEED;
 	ball.angle = BALL_DEF_ANGLE;
 	pthread_mutex_unlock(&ball.mtx);
 
 	pthread_mutex_lock(&mtx_bricks);
-	srand(GET_MS); // TODO: read analog value
+	srand(GET_MS);
 	bool golden[NB_COLUMNS] = {false};
 	for(u8 col = 0; col < NB_GOLDEN_COLS; col++) {
 		u8 try = rand() % NB_COLUMNS;
@@ -527,8 +531,8 @@ void* main_prog(void *arg) {
 	timer_bar = timer_init(BAR_DELAY_THRESH, &timer_bar_cb);
 
 
-	/* Column management threads, priority 1 */
-    sched_par.sched_priority = 1;
+	/* Column management threads, priority 2 */
+    sched_par.sched_priority = 2;
     pthread_attr_setschedparam(&attr, &sched_par);
     for(int i = 0; i < NB_COLUMNS; i++) {
         int *arg = malloc(sizeof(arg));
@@ -556,9 +560,8 @@ void* main_prog(void *arg) {
     else
         safe_printf("[INFO uB1] \t thread_bar launched with ID %d \r\n", tid_bar);
 
-    /* Ball management thread, priority 1 */
-    pthread_attr_init (&attr);
-    sched_par.sched_priority = 1;
+    /* Ball management thread, priority 3 */
+    sched_par.sched_priority = 3;
     pthread_attr_setschedparam(&attr, &sched_par);
     ret = pthread_create (&tid_ball, &attr, (void*)thread_ball, NULL);
     if (ret != 0) {
