@@ -165,7 +165,10 @@ void* thread_column(void *arg) {
 	safe_printf("[INFO uB1] \t thread_column_%d launched with ID %d \r\n", idx, tid_col[idx]);
 
 	Collision colli;
-	Ball ball_new;
+    colli.idx = idx;
+    Ball ball_new;
+    u8 nb_bricks = NB_ROWS;
+    
 	pthread_mutex_lock(&mtx_msgq);
 	int msgid = msgget(idx+1, IPC_CREAT);
 	pthread_mutex_unlock(&mtx_msgq);
@@ -173,7 +176,6 @@ void* thread_column(void *arg) {
 		safe_printf ("[col%d]\t Error while opening Message Queue. Errno: %d \r\n", idx, errno);
 		pthread_exit(&errno) ;
 	}
-	colli.idx = idx;
 
 	while(1) {
 		sem_wait(&sem_check_collision);
@@ -184,7 +186,6 @@ void* thread_column(void *arg) {
 		u16 iter_max = UPDATE_S*ball.vel;
 		u8 row;
 		colli.happened = false;
-		//	   colli.normal = check_angle(ball.angle - 90);
 
 		for(colli.iter = 1; (colli.iter < iter_max) && !colli.happened; colli.iter++) {
 			ball_new.x = ball.x + round(colli.iter*cos(rad(ball.angle))); // TODO: optimize by caching the values returned by cos and sin
@@ -237,8 +238,11 @@ void* thread_column(void *arg) {
 			pthread_mutex_lock(&mtx_bricks);
 			bricks[idx][row] = BROKEN; // maybe do that on the next iteration ?
 			score++; // TODO: add golden brick : try to lock the semaphore if available ?
-			remaining_bricks--;  // TODO: kill thread if corresponding bricks are all broken
+			remaining_bricks--;
 			pthread_mutex_unlock(&mtx_bricks);
+            nb_bricks--;
+            if(nb_bricks == 0)
+                pthread_exit(NULL);
 		}
 	}
 }
@@ -248,7 +252,9 @@ void* thread_ball() {
 	u32 actual_time, last_sent = GET_MS;
 	Model_state model_state;
 	Ball ball_new;
-	int offset_x = 0, offset_y = 0;
+	int offset_x, offset_y, offset_angle, offset_vel;
+    u16 iter_tot = 0;
+    p_stat p_info;
 	sem_post(&sem_arbitration_done);
 
 	while(1) {
@@ -286,9 +292,12 @@ void* thread_ball() {
 
 
 			u16 iter_max = UPDATE_S*ball.vel;
-			next_colli.idx = -1;
+			next_colli.idx = -1; // default value for bounce against wall/bar
 			next_colli.happened = false;
-			ball_new.vel = ball.vel;
+			ball_new.vel = ball.vel; // maybe fully copy ball
+            ball_new.angle = ball.angle;
+            offset_angle = 0;
+            offset_vel = 0;
 
 			for(next_colli.iter = 1; next_colli.iter < iter_max; next_colli.iter++) {
 				ball_new.x = ball.x + round(next_colli.iter*cos(rad(ball.angle)));
@@ -333,6 +342,12 @@ void* thread_ball() {
 					&& (abs(ball_new.x-bar.pos) <= BAR_W/2) ) {
 					next_colli.normal = 270;
 					print("Bounce on flat bar.\n\r");
+                    /* Bounce on A segment */
+                    if(abs(ball_new.x-bar.pos) > (BAR_N/2+BAR_S))
+                        offset_angle = BAR_ANGLE_CHANGE*sign(ball_new.x-bar.pos);
+                    /* Bounce on S segment */
+                    else if(abs(ball_new.x-bar.pos) > BAR_N/2)
+                        offset_vel = BAR_VEL_CHANGE*sign(ball_new.x-bar.pos);
 					break;
 				}
 				next_colli.happened = false;
@@ -347,6 +362,9 @@ void* thread_ball() {
 			sem_post(&sem_check_collision);
 			safe_printf("[ball]\tReceive result\n\r");
 			for(int i  = 0; i < NB_COLUMNS; i++) {
+                process_status(tid_col[i],&p_info);
+                if(p_info.state == PROC_DEAD) // no brick left
+                    continue;
 				int msgid = msgget(i+1, IPC_CREAT);
 				msgrcv(msgid, &column_colli, sizeof(Collision), 0,0 );
 				/* Pick the soonest collision */
@@ -368,11 +386,23 @@ void* thread_ball() {
 				safe_printf("Offset x: %d, offset y: %d\n\r", offset_x, offset_y);
 				ball_new.x = ball.x + round(next_colli.iter*cos(rad(ball.angle))) + offset_x;
 				ball_new.y = ball.y + round(next_colli.iter*sin(rad(ball.angle))) + offset_y;
+                
+                if(next_colli.idx == -1) {
+                    if(offset_angle > 0)
+                        ball_new.angle = max(ball_new.angle+offset_angle,BAR_MAX_ANGLE);
+                    if(offset_angle < 0)
+                        ball_new.angle = min(ball_new.angle+offset_angle,BAR_MIN_ANGLE);
+                    if(offset_vel > 0)
+                        ball_new.vel = max(ball_new.vel+offset_vel,BALL_MAX_VEL);
+                    if(offset_vel < 0)
+                        ball_new.vel = min(ball_new.vel+offset_vel,BALL_MIN_VEL);
+                }
 			}
-			else
-				ball_new.angle = ball.angle;
 			//safe_printf("New angle is: %d; New pos: %d,%d\n\r", ball_new.angle, ball_new.x, ball_new.y);
 			ball = ball_new;
+            
+//            iter_tot += next_colli.iter;
+//            if(iter_tot < iter_max
 		}
 
 		/* Prepare message to be sent */
