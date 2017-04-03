@@ -39,8 +39,8 @@ void* thread_display() {
 	int Status;
 	XTft_Config *TftConfigPtr;
 	u32 TftDeviceId = TFT_DEVICE_ID;
-
 	Model_state data, data_prev[NB_FRAMES];
+	u32 t_stamp;
 
 	safe_printf("[INFO uB0] \t Configuring the display\r\n");
 
@@ -70,9 +70,6 @@ void* thread_display() {
 		TftInstance.TftConfig.VideoMemBaseAddr = frames_addr[frames_cnt];
 	}
 
-	/* Initialise previous states */
-
-
 	safe_printf("[INFO uB0] \t Listening to the model\r\n");
 
 	// TODO: put all the display routines in parallel: ball, bricks, bar
@@ -80,6 +77,14 @@ void* thread_display() {
 		XMbox_ReadBlocking(&mbx_model, (u32*)&data, sizeof(data));
 		//safe_printf("Display: received bar %u, ball %u,%u\n\r", data.bar_pos, data.ball_posx, data.ball_posy);
 		//safe_printf("Received size: %d\n\r", sizeof(data));
+
+		t_stamp = GET_MS;
+
+        /* Erase what can be erased */
+        set_erase();
+		draw_bar(&TftInstance, data_prev[frames_cnt].bar_pos);
+		draw_ball(&TftInstance, data_prev[frames_cnt].ball_posx, data_prev[frames_cnt].ball_posy);
+        set_draw();
 
 		/* Write data */
 		draw_bricks(&TftInstance, data.bricks, data_prev[frames_cnt].bricks);
@@ -102,11 +107,7 @@ void* thread_display() {
         /* Set the new frame address for subsequent draws */
         TftInstance.TftConfig.VideoMemBaseAddr = frames_addr[frames_cnt];
 
-        /* Erase what can be erased */
-        set_erase();
-		draw_bar(&TftInstance, data_prev[frames_cnt].bar_pos);
-		draw_ball(&TftInstance, data_prev[frames_cnt].ball_posx, data_prev[frames_cnt].ball_posy);
-        set_draw();
+        safe_printf("[INFO uB0] \t Processing time: %u ms\r\n", GET_MS-t_stamp);
 
 	}
 }
