@@ -2,10 +2,8 @@
 #ifndef SRC_CONFIG_MODEL_H_
 #define SRC_CONFIG_MODEL_H_
 
-#define UPDATE_MS			60
-#define UPDATE_S			UPDATE_MS/1000.
-
-#define GET_MS				sys_xget_clock_ticks()*(SYSTMR_INTERVAL / SYSTMR_CLK_FREQ_KHZ)
+#define UPDATE_MS			30
+#define UPDATE_S			(UPDATE_MS/1000.)
 
 #define PB_CENTER			0
 #define PB_DOWN				1
@@ -17,9 +15,15 @@
 #define BAR_DELAY_THRESH	250
 #define BAR_JUMP_DIST		25
 #define BAR_DEF_SPEED		200
+#define BAR_ANGLE_CHANGE	15
+#define BAR_VEL_CHANGE		100
+#define BAR_MAX_ANGLE		345
+#define BAR_MIN_ANGLE		195
 
-#define BALL_DEF_SPEED		150
+#define BALL_DEF_SPEED		250
 #define BALL_DEF_ANGLE		270
+#define BALL_MAX_VEL		1000
+#define BALL_MIN_VEL		50
 
 #define NB_GOLDEN_COLS		2
 #define THRESH_GOLDEN		10
