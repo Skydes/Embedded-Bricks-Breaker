@@ -6,11 +6,14 @@ BEGIN OS
  PARAMETER OS_NAME = xilkernel
  PARAMETER OS_VER = 6.3
  PARAMETER PROC_INSTANCE = microblaze_1
+ PARAMETER config_kill = true
  PARAMETER config_msgq = true
  PARAMETER config_named_sema = true
  PARAMETER config_pthread_mutex = true
  PARAMETER config_sema = true
  PARAMETER config_time = true
+ PARAMETER config_yield = true
+ PARAMETER enhanced_features = true
  PARAMETER max_procs = 15
  PARAMETER max_pthreads = 15
  PARAMETER max_readyq = 15
