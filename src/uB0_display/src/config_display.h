@@ -30,15 +30,17 @@
 #define BZ_OFFSET_X			60
 #define BZ_OFFSET_Y			60
 
+#define BAR_FILLED			false
+
 #define CHAR_H				XTFT_CHAR_HEIGHT
 #define CHAR_W				XTFT_CHAR_WIDTH
 
 #define TXT_OFFSET_X		520
 #define SCORE_OFFSET_Y		120
 #define TXT_SCORE			"Score:"
-#define SPEED_OFFSET_Y		SCORE_OFFSET_Y+3*CHAR_H
+#define SPEED_OFFSET_Y		(SCORE_OFFSET_Y+3*CHAR_H)
 #define TXT_SPEED			"Ball speed:"
-#define BRICKS_OFFSET_Y		SPEED_OFFSET_Y+3*CHAR_H
+#define BRICKS_OFFSET_Y		(SPEED_OFFSET_Y+3*CHAR_H)
 #define TXT_BRICKS			"Bricks:"
 
 #define MSG_BOX_HEIGHT		100
