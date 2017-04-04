@@ -17,6 +17,8 @@ BEGIN OS
  PARAMETER max_procs = 15
  PARAMETER max_pthreads = 15
  PARAMETER max_readyq = 15
+ PARAMETER max_sem = 20
+ PARAMETER max_sem_waitq = 15
  PARAMETER sched_type = SCHED_PRIO
  PARAMETER stdin = ps7_uart_1
  PARAMETER stdout = ps7_uart_1
