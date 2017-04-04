@@ -19,7 +19,7 @@
 #define MBOX_DEVICE_ID		XPAR_MBOX_0_DEVICE_ID
 
 /* Bricks parameters */
-#define NB_COLUMNS          2
+#define NB_COLUMNS          10
 #define NB_ROWS				8
 #define NB_GOLD_COLUMNS     2
 #define BRICK_H				15
@@ -41,7 +41,7 @@
 
 
 /* Useful data types */
-typedef enum Game_state {WAITING, RUNNING, WON, LOST} Game_state;
+typedef enum Game_state {WAITING, RUNNING, WON, LOST, PAUSED} Game_state;
 typedef enum Brick {BROKEN, NORMAL, GOLDEN} Brick;
 
 typedef struct {
