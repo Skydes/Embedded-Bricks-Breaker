@@ -9,6 +9,9 @@
 #include "config.h"
 #include "config_display.h"
 
+#define FILLED		1
+#define UNFILLED	0
+
 void drawBox(XTft *Tft, u16 x1, u16 x2, u16 y1, u16 y2, u32 color, bool filled);
 void drawHLine(XTft *Tft, int x1, int x2, u16 y, u32 color);
 void drawVLine(XTft *Tft, u16 x, int y1, int y2, u32 color);

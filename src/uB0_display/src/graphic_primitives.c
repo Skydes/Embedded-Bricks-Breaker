@@ -2,8 +2,8 @@
 
 
 //void setPixel(XTft *Tft, int ColVal, int RowVal, u32 PixelVal);
-#define setPixel(Tft, x, y, c)  { if((x >= 0) && (y >= 0) && (x < XTFT_DISPLAY_WIDTH) && (y < XTFT_DISPLAY_HEIGHT)) \
-								       Xil_Out32((Tft)->TftConfig.VideoMemBaseAddr + (4 * ((y) * XTFT_DISPLAY_BUFFER_WIDTH + x)), c); }
+#define setPixel(Tft, x, y, c)  { if(((x) >= 0) && ((y) >= 0) && ((x) < XTFT_DISPLAY_WIDTH) && ((y) < XTFT_DISPLAY_HEIGHT)) \
+								       Xil_Out32((Tft)->TftConfig.VideoMemBaseAddr + (4 * ((y) * XTFT_DISPLAY_BUFFER_WIDTH + (x))), c); }
 
 
 
