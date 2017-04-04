@@ -2,7 +2,7 @@
 #ifndef SRC_CONFIG_MODEL_H_
 #define SRC_CONFIG_MODEL_H_
 
-#define UPDATE_MS			30
+#define UPDATE_MS			40
 #define UPDATE_S			(UPDATE_MS/1000.)
 
 #define PB_CENTER			0
@@ -13,8 +13,8 @@
 #define DEBOUNCE_DELAY		30
 
 #define BAR_DELAY_THRESH	250
-#define BAR_JUMP_DIST		25
-#define BAR_DEF_SPEED		200
+#define BAR_JUMP_DIST		40
+#define BAR_DEF_SPEED		300
 #define BAR_ANGLE_CHANGE	15
 #define BAR_VEL_CHANGE		100
 #define BAR_MAX_ANGLE		345
@@ -27,6 +27,9 @@
 
 #define NB_GOLDEN_COLS		2
 #define THRESH_GOLDEN		10
+#define SCORE_INC_GOLDEN	2
+#define SCORE_INC_NORMAL	1
+#define SCORE_VEL_CHANGE	25
 
 typedef enum {NONE, LEFT, RIGHT} Bar_jump;
 
@@ -42,6 +45,7 @@ typedef struct {
 	pthread_mutex_t mtx;
 	u16 vel, angle;
 	int x, y;
+	double c, s;
 } Ball;
 
 typedef struct {
