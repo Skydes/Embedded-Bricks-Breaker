@@ -18,7 +18,7 @@ _HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0xf00;
 MEMORY
 {
    microblaze_1_local_memory_ilmb_bram_if_cntlr_microblaze_1_local_memory_dlmb_bram_if_cntlr : ORIGIN = 0x50, LENGTH = 0x1FFB0
-   ps7_ddr_0_GP0_AXI_BASENAME : ORIGIN = 0x10000000, LENGTH = 0x10000000
+   ps7_ddr_0_GP0_AXI_BASENAME : ORIGIN = 0x10600000, LENGTH = 0x10000000
 }
 
 /* Specify the default entry point to the program */

@@ -68,7 +68,7 @@ SECTIONS
    KEEP (*(.ctors))
    __CTOR_END__ = .;
    ___CTORS_END___ = .;
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .dtors : {
    __DTOR_LIST__ = .;
@@ -79,7 +79,7 @@ SECTIONS
    KEEP (*(.dtors))
    PROVIDE(__DTOR_END__ = .);
    PROVIDE(___DTORS_END___ = .);
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .rodata : {
    __rodata_start = .;
@@ -118,27 +118,27 @@ SECTIONS
 
 .got : {
    *(.got)
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .got1 : {
    *(.got1)
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .got2 : {
    *(.got2)
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .eh_frame : {
    *(.eh_frame)
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .jcr : {
    *(.jcr)
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .gcc_except_table : {
    *(.gcc_except_table)
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .sdata : {
    . = ALIGN(8);
@@ -165,7 +165,7 @@ SECTIONS
    *(.tdata.*)
    *(.gnu.linkonce.td.*)
    __tdata_end = .;
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .tbss : {
    __tbss_start = .;
@@ -173,7 +173,7 @@ SECTIONS
    *(.tbss.*)
    *(.gnu.linkonce.tb.*)
    __tbss_end = .;
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 .bss (NOLOAD) : {
    . = ALIGN(4);
@@ -206,7 +206,7 @@ _SDA2_BASE_ = __sdata2_start + ((__sbss2_end - __sdata2_start) / 2 );
    . = ALIGN(8);
    _stack = .;
    __stack = _stack;
-} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
+} > ps7_ddr_0_GP0_AXI_BASENAME
 
 _end = .;
 }
