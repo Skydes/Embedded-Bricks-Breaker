@@ -40,7 +40,8 @@ void* thread_display() {
 	XTft_Config *TftConfigPtr;
 	u32 TftDeviceId = TFT_DEVICE_ID;
 	Model_state data, data_prev[NB_FRAMES];
-	u32 t_stamp;
+	u32 t_stamp = GET_MS;
+	u16 fps;
 
 	safe_printf("[INFO uB0] \t Configuring the display\r\n");
 
@@ -75,10 +76,6 @@ void* thread_display() {
 	// TODO: put all the display routines in parallel: ball, bricks, bar
 	while(1) {
 		XMbox_ReadBlocking(&mbx_model, (u32*)&data, sizeof(data));
-		//safe_printf("Display: received bar %u, ball %u,%u\n\r", data.bar_pos, data.ball_posx, data.ball_posy);
-		//safe_printf("Received size: %d\n\r", sizeof(data));
-
-		t_stamp = GET_MS;
 
         /* Erase what can be erased */
         set_erase();
@@ -93,8 +90,17 @@ void* thread_display() {
 		display_info(&TftInstance, data);
 
 		/* Display message */
-		if(data.game_state == WON || data.game_state == LOST)
+		if(data.game_state != data_prev[frames_cnt].game_state) {
+			set_erase();
+			display_msg(&TftInstance, data_prev[frames_cnt].game_state);
+			set_draw();
 			display_msg(&TftInstance, data.game_state);
+		}
+
+		/* Display FPS */
+		fps = 1000/(GET_MS-t_stamp);
+		display_fps(&TftInstance, fps);
+		t_stamp = GET_MS;
 
 		data_prev[frames_cnt] = data;
 
@@ -107,8 +113,6 @@ void* thread_display() {
         /* Set the new frame address for subsequent draws */
         TftInstance.TftConfig.VideoMemBaseAddr = frames_addr[frames_cnt];
 
-        safe_printf("[INFO uB0] \t Processing time: %u ms\r\n", GET_MS-t_stamp);
-
 	}
 }
 
@@ -116,7 +120,7 @@ u8 lastCnt() {
     return (NB_FRAMES + frames_cnt + 1) % NB_FRAMES; }
 
 u8 nextCnt() {
-    return (NB_FRAMES + frames_cnt  - 1) % NB_FRAMES; }
+    return (NB_FRAMES + frames_cnt - 1) % NB_FRAMES; }
 
 
 void* main_prog(void *arg) {
