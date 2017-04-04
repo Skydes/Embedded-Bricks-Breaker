@@ -33,7 +33,7 @@ XGpio gpio_pb;
 
 /* Synchronization objects */
 pthread_t tid_ball, tid_bar, tid_timer_bar, tid_col[NB_COLUMNS];
-sem_t sem_debounce, sem_check_collision, sem_arbitration_done;
+sem_t sem_debounce, sem_start_check, sem_check_done[NB_COLUMNS], sem_arbitration_done;
 pthread_mutex_t mtx_bricks, mtx_msgq;
 Timer* timer_bar;
 
@@ -41,10 +41,11 @@ Timer* timer_bar;
 volatile Game_state game_state;
 Bar bar;
 Ball ball;
-Collision next_colli;
+Collision next_colli, column_colli[NB_COLUMNS];
 Brick bricks[NB_COLUMNS][NB_ROWS];
-u32 score, remaining_bricks;
-sem_t golden_brick;
+u32 score, tot_remaining_bricks;
+u8 remaining_bricks[NB_COLUMNS];
+sem_t golden_brick, golden_release;
 
 
 /* Push buttons ISR */
@@ -58,24 +59,24 @@ static void pb_ISR(void *arg) {
 	if( (pb_state ^ prev_pb_state) & ((1 << PB_RIGHT) | (1 << PB_LEFT) | (1 << PB_CENTER)) ) {
 		XGpio_InterruptDisable(&gpio_pb,1);
 		sem_post(&sem_debounce);
-		safe_printf("Interrupt: %d \r\n", pb_state); // debug
+//		safe_printf("Interrupt: %d \r\n", pb_state); // debug
 	};
 	prev_pb_state = pb_state;
 }
 
-float rad(u16 deg) {
+static inline float rad(u16 deg) {
 	return deg/180.*M_PI;
 }
 
-int max(int a, int b) {
+static inline int max(int a, int b) {
 	return a>b ? a : b;
 }
 
-int min(int a, int b) {
+static inline int min(int a, int b) {
 	return a<b ? a : b;
 }
 
-int sign(double a) {
+static inline int sign(double a) {
 	return a >= 0 ? 1 : -1;
 }
 
@@ -105,14 +106,18 @@ void* thread_buttons() {
 		/* Manage bar movement */
 		switch(game_state) {
 			case WAITING:
+				ball.angle = BAR_MIN_ANGLE + sys_xget_clock_ticks()%(BAR_MAX_ANGLE - BAR_MIN_ANGLE);
+			case PAUSED:
 				if(pb_center)
-				{
 					game_state = RUNNING;
-					safe_printf("Game Starting!\n\r");
-				}
 				break;
 
 			case RUNNING:
+				if(pb_center) {
+					game_state = PAUSED;
+					break;
+				}
+
 				pthread_mutex_lock(&bar.mtx);
 				if( !(pb_right ^ pb_left) ) { // both released or both pressed
 					if( (actual_time - bar.last_change) < BAR_DELAY_THRESH) {
@@ -164,88 +169,115 @@ void* thread_column(void *arg) {
 	u8 idx = *((int *) arg); // local context copy
 	free(arg);
 	safe_printf("[INFO uB1] \t thread_column_%d launched with ID %d \r\n", idx, tid_col[idx]);
+
 	Collision colli;
-    colli.idx = idx;
     Ball ball_new;
-    u8 nb_bricks = NB_ROWS;
-    double cosinus, sinus;
-    
-	pthread_mutex_lock(&mtx_msgq);
-	int msgid = msgget(idx+1, IPC_CREAT);
-	pthread_mutex_unlock(&mtx_msgq);
-	if(msgid == -1) {
-		safe_printf ("[col%d]\t Error while opening Message Queue. Errno: %d \r\n", idx, errno);
-		pthread_exit(&errno) ;
-	}
+    bool out, golden = false;
+    u16 iter_max;
+    u8 row;
+    int x_f, y_f, dist_x, dist_y, dx, dy;
+
+    colli.idx = idx;
 
 	while(1) {
-		sem_wait(&sem_check_collision);
-		sem_post(&sem_check_collision);
-//		safe_printf("[col%d]\tStarting collision check\n\r", idx);
+		sem_wait(&sem_start_check);
+		sem_post(&sem_start_check);
 
-		/* Check collision using the shared structure ball */
-		u16 iter_max = UPDATE_S*ball.vel;
-		u8 row;
-		colli.happened = false;
-		cosinus = cos(rad(ball.angle));
-		sinus = sin(rad(ball.angle));
-
-		for(colli.iter = 1; (colli.iter < iter_max) && !colli.happened; colli.iter++) {
-			ball_new.x = ball.x + round(colli.iter*cosinus);
-			ball_new.y = ball.y + round(colli.iter*sinus);
-
-			int dist_x = ball_new.x - (BRICK_OFFSET + BRICK_W/2 + idx*(BRICK_W + BRICK_OFFSET));
-			if( (abs(dist_x) > (BRICK_W/2 + BALL_R)) || (ball_new.y > (NB_ROWS*(BRICK_OFFSET+BRICK_H)+BALL_R)) )
-				continue;
-
-			for(row = 0; row < NB_ROWS; row++) {
-				if(bricks[idx][row] == BROKEN)
-					continue;
-				colli.happened = true;
-				int dist_y = ball_new.y - (BRICK_OFFSET + BRICK_H/2 + row*(BRICK_H + BRICK_OFFSET)); // will maybe have to use floats
-				/* Bounce on vertical edge */
-				if( (abs(dist_x) == (BRICK_W/2 + BALL_R)) && (abs(dist_y) < BRICK_H/2)) {
-					colli.normal = dist_x > 0 ? 0 : 180;
-					break;
-				}
-				/* Bounce on horizontal edge */
-				if( (abs(dist_y) == (BRICK_H/2 + BALL_R)) && (abs(dist_x) < BRICK_W/2) ) {
-					colli.normal = dist_y > 0 ? 90 : 270;
-					break;
-				}
-				/* Bounce on corner */
-				int dx = abs(dist_x) - BRICK_W/2;
-				int dy = abs(dist_y) - BRICK_H/2;
-				if( (dx*dx + dy*dy) < (BALL_R*BALL_R)) {
-					colli.normal = (dist_y > 0 ? 1 : -1) * (90 + (dist_x > 0 ? -1 : 1) * 45);
-					break;
-				}
-				colli.happened = false;
+		if(golden && !sem_trywait(&golden_release)) {
+			sem_post(&golden_brick);
+			golden = false;
+			for(u8 row = 0; row < NB_ROWS; row++) {
+				if(bricks[idx][row] == GOLDEN)
+					bricks[idx][row] = NORMAL;
 			}
-			if(colli.happened == true) {
-				safe_printf("[col%d]\tCollision detected with normal %d\n\r", idx, colli.normal);
-				break;
+		}
+		else if(!golden && !sem_trywait(&golden_brick)){
+			golden = true;
+			for(u8 row = 0; row < NB_ROWS; row++) {
+				if(bricks[idx][row] == NORMAL)
+					bricks[idx][row] = GOLDEN;
 			}
 		}
 
-		pthread_mutex_lock(&mtx_msgq);
-		msgsnd(msgid, &colli, sizeof(Collision), 0);
-		pthread_mutex_unlock(&mtx_msgq);
+		/* Check collision using the shared structure ball */
+		iter_max = UPDATE_S*ball.vel;
+		colli.happened = false;
+
+		x_f = ball.x + round(iter_max*ball.c);
+		y_f = ball.y + round(iter_max*ball.s);
+		out = ( (ball.y > (NB_COLUMNS*(BRICK_H+BRICK_OFFSET)+BALL_R+5)) &&
+				(y_f > (NB_COLUMNS*(BRICK_H+BRICK_OFFSET)+BALL_R+5)) ) ||
+			  ( (ball.x < (BRICK_OFFSET+idx*(BRICK_W+BRICK_OFFSET)-BALL_R-5)) &&
+				(x_f < (BRICK_OFFSET+idx*(BRICK_W+BRICK_OFFSET)-BALL_R-5)) ) ||
+		      ( (ball.x > ((idx+1)*(BRICK_W+BRICK_OFFSET)+BALL_R+5)) &&
+		    	(x_f > ((idx+1)*(BRICK_W+BRICK_OFFSET)+BALL_R+5)) );
+
+
+		if(!out) {
+			for(colli.iter = 1; (colli.iter < iter_max) && !colli.happened; colli.iter++) {
+				ball_new.x = ball.x + round(colli.iter*ball.c);
+				ball_new.y = ball.y + round(colli.iter*ball.s);
+
+				dist_x = ball_new.x - (BRICK_OFFSET + BRICK_W/2 + idx*(BRICK_W + BRICK_OFFSET));
+
+				if( (abs(dist_x) > (BRICK_W/2 + BALL_R)) || (ball_new.y > (NB_ROWS*(BRICK_OFFSET+BRICK_H)+BALL_R)) )
+					continue;
+
+				for(row = 0; row < NB_ROWS; row++) {
+					if(bricks[idx][row] == BROKEN)
+						continue;
+					colli.happened = true;
+					dist_y = ball_new.y - (BRICK_OFFSET + BRICK_H/2 + row*(BRICK_H + BRICK_OFFSET)); // will maybe have to use floats
+					/* Bounce on vertical edge */
+					if( (abs(dist_x) == (BRICK_W/2 + BALL_R)) && (abs(dist_y) < BRICK_H/2)) {
+						colli.normal = dist_x > 0 ? 0 : 180;
+						break;
+					}
+					/* Bounce on horizontal edge */
+					if( (abs(dist_y) == (BRICK_H/2 + BALL_R)) && (abs(dist_x) < BRICK_W/2) ) {
+						colli.normal = dist_y > 0 ? 90 : 270;
+						break;
+					}
+					/* Bounce on corner */
+					dx = abs(dist_x) - BRICK_W/2;
+					dy = abs(dist_y) - BRICK_H/2;
+					if( (dx*dx + dy*dy) <= (BALL_R*BALL_R)) {
+						colli.normal = (dist_y > 0 ? 1 : -1) * (90 + (dist_x > 0 ? -1 : 1) * 45);
+						break;
+					}
+					colli.happened = false;
+				}
+				if(colli.happened == true) {
+//					safe_printf("[col%d]\tCollision detected with normal %d\n\r", idx, colli.normal);
+					break;
+				}
+			}
+		}
+
+		column_colli[idx] = colli;
+		sem_post(&sem_check_done[idx]);
 
 //		safe_printf("[col%d]\tWaiting for arbitration\n\r", idx);
 		sem_wait(&sem_arbitration_done);
 		sem_post(&sem_arbitration_done);
 
 		if(next_colli.happened && (next_colli.idx == idx)) {
-			safe_printf("[col%d]\tCollision accepted, destruction of brick %d\n\r", idx, row);
+//			safe_printf("[col%d]\tCollision accepted, destruction of brick %d\n\r", idx, row);
 			pthread_mutex_lock(&mtx_bricks);
-			bricks[idx][row] = BROKEN; // maybe do that on the next iteration ?
-			score++; // TODO: add golden brick : try to lock the semaphore if available ?
-			remaining_bricks--;
-			pthread_mutex_unlock(&mtx_bricks);
-            nb_bricks--;
-//            if(nb_bricks == 0)
-//            pthread_exit(0);
+			score += (bricks[idx][row] == GOLDEN) ? SCORE_INC_GOLDEN : SCORE_INC_NORMAL;
+			bricks[idx][row] = BROKEN; // maybe do that on the next iteration ? --> or decide to delay this in display = with animation!
+			if((score % THRESH_GOLDEN) == 0)
+				for(u8 i = 0; i < NB_GOLDEN_COLS; i++)
+					sem_post(&golden_release);
+			tot_remaining_bricks--;
+            if(--remaining_bricks[idx] == 0) {
+            	pthread_mutex_unlock(&mtx_bricks);
+            	if(golden)
+            		sem_post(&golden_brick);
+            	pthread_exit(0);
+            }
+            else
+            	pthread_mutex_unlock(&mtx_bricks);
 		}
 	}
 }
@@ -256,9 +288,6 @@ void* thread_ball() {
 	Model_state model_state;
 	Ball ball_new;
 	int offset_x, offset_y, offset_angle, offset_vel;
-	double cosinus, sinus;
-    p_stat p_info;
-    Collision column_colli;
 	sem_post(&sem_arbitration_done);
 
 	while(1) {
@@ -267,16 +296,19 @@ void* thread_ball() {
 		pthread_mutex_lock(&mtx_bricks);
 		model_state.score = score;
 		memcpy(&(model_state.bricks), &bricks, NB_COLUMNS*NB_ROWS*sizeof(Brick));
-//		if(remaining_bricks == 0)
-//			game_state = WON;
+		if(tot_remaining_bricks == 0)
+			game_state = WON;
 		pthread_mutex_unlock(&mtx_bricks);
 
 		if(game_state == RUNNING) {
 
+            ball.c = cos(rad(ball.angle));
+            ball.s = sin(rad(ball.angle));
+
 			/* Launch collision checking with bricks */
 			sem_wait(&sem_arbitration_done); // cancel last post
 //			safe_printf("[ball]\tUnlocking columns for collision checking\n\r");
-			sem_post(&sem_check_collision);
+			sem_post(&sem_start_check);
 
 			/* Update Bar position */
 			pthread_mutex_lock(&bar.mtx);
@@ -308,12 +340,9 @@ void* thread_ball() {
             offset_angle = 0;
             offset_vel = 0;
 
-            cosinus = cos(rad(ball.angle));
-            sinus = sin(rad(ball.angle));
-
 			for(next_colli.iter = 1; next_colli.iter < iter_max; next_colli.iter++) {
-				ball_new.x = ball.x + round(next_colli.iter*cosinus);
-				ball_new.y = ball.y + round(next_colli.iter*sinus);
+				ball_new.x = ball.x + round(next_colli.iter*ball.c);
+				ball_new.y = ball.y + round(next_colli.iter*ball.s);
 				next_colli.happened = true;
 
 				/* Bounce on left boundary */
@@ -336,7 +365,7 @@ void* thread_ball() {
 				}
 				/* Reach bottom */
 				if((ball_new.y+BALL_R) >= BZ_H) {
-					//game_state = LOST;
+					game_state = LOST;
 					next_colli.normal = 270;
 //					print("Lost game...\n\r");
 					break;
@@ -367,30 +396,37 @@ void* thread_ball() {
 
 			/* Receive result from collision checking with bricks */
 //			safe_printf("[ball]\tReceive result from columns\n\r");
-			for(int i  = 0; i < NB_COLUMNS; i++) {
-                process_status(tid_col[i],&p_info);
-//                safe_printf("[ball]\t Col%d, status: %d\n\r", i, p_info.state);
-                if(p_info.state == PROC_DEAD) // no brick left
-                    continue;
-				int msgid = msgget(i+1, IPC_CREAT);
-				msgrcv(msgid, &column_colli, sizeof(Collision), 0,0 );
+			for(u8 i  = 0; i < NB_COLUMNS; i++) {
+				pthread_mutex_lock(&mtx_bricks);
+                if(remaining_bricks[i] == 0) { // no brick left
+                	pthread_mutex_unlock(&mtx_bricks);
+                	continue;
+                }
+                pthread_mutex_unlock(&mtx_bricks);
+                sem_wait(&sem_check_done[i]);
 				/* Pick the soonest collision */
-				if( !column_colli.happened || (column_colli.iter >= next_colli.iter) )
+				if( !column_colli[i].happened || (column_colli[i].iter >= next_colli.iter) )
 					continue;
-				next_colli = column_colli;
+				next_colli = column_colli[i];
 				safe_printf("[ball]\tNew collision detected\n\r");
 			}
-//			safe_printf("[ball]\tResult received\n\r");
-			sem_wait(&sem_check_collision); // cancel last post
-//			safe_printf("[ball]\tSending confirmation\n\r");
+
+			sem_wait(&sem_start_check); // cancel last post
+
 			/* Confirm the result of the arbitration */
 			sem_post(&sem_arbitration_done);
+			yield();
+
+			pthread_mutex_lock(&mtx_bricks);
+//			if( ((model_state.score % THRESH_GOLDEN) != 0) && ((score % THRESH_GOLDEN) == 0))
+			if( (model_state.score/10) < (score/10))
+				ball_new.vel = min(ball_new.vel+SCORE_VEL_CHANGE,BALL_MAX_VEL);
+			pthread_mutex_unlock(&mtx_bricks);
 
 			if(next_colli.happened) {
 				ball_new.angle = check_angle(2*next_colli.normal - (int) ball.angle + 180);
 				offset_x = sign(cos(rad(next_colli.normal)))*round(fabs(cos(rad(next_colli.normal))));
 				offset_y = sign(sin(rad(next_colli.normal)))*round(fabs(sin(rad(next_colli.normal))));
-				safe_printf("Offset x: %d, offset y: %d\n\r", offset_x, offset_y);
 				ball_new.x = ball.x + round(next_colli.iter*cos(rad(ball.angle))) + offset_x;
 				ball_new.y = ball.y + round(next_colli.iter*sin(rad(ball.angle))) + offset_y;
                 
@@ -405,7 +441,6 @@ void* thread_ball() {
                         ball_new.vel = max(ball_new.vel+offset_vel,BALL_MIN_VEL);
                 }
 			}
-//			safe_printf("New angle is: %d; New pos: %d,%d\n\r", ball_new.angle, ball_new.x, ball_new.y);
 			ball = ball_new;
 		}
 
@@ -420,7 +455,7 @@ void* thread_ball() {
 		/* Make sure the refresh rate is constant */
 		actual_time = GET_MS;
 		int wait_time = UPDATE_MS - (int) actual_time + (int) last_sent;
-		safe_printf("Wait time: %d\n\r", wait_time);
+//		safe_printf("Wait time: %d\n\r", wait_time);
 		sleep(max(wait_time,0));
 		last_sent = GET_MS;
 
@@ -430,6 +465,7 @@ void* thread_ball() {
 }
 
 void init_game() {
+	srand(GET_MS);
 	game_state = WAITING;
 
 	pthread_mutex_lock(&bar.mtx);
@@ -440,31 +476,34 @@ void init_game() {
 	pthread_mutex_unlock(&bar.mtx);
 
 	pthread_mutex_lock(&ball.mtx);
-	ball.x = 25; //BZ_W/2;
-	ball.y = BZ_H - BAR_OFFSET_Y - BAR_H - BALL_R - 80;
+	ball.x = BZ_W/2;
+	ball.y = BZ_H - BAR_OFFSET_Y - BAR_H - BALL_R;
 	ball.vel = BALL_DEF_SPEED;
 	ball.angle = BALL_DEF_ANGLE;
 	pthread_mutex_unlock(&ball.mtx);
 
 	pthread_mutex_lock(&mtx_bricks);
-	srand(GET_MS);
-	bool golden[NB_COLUMNS] = {false};
-	for(u8 col = 0; col < NB_GOLDEN_COLS; col++) {
-		u8 try = rand() % NB_COLUMNS;
-		if(!golden[try])
-			golden[try] = true;
-		else
-			col--;
-	}
-	for(u8 col = 0; col < NB_COLUMNS; col++)
+//	srand(GET_MS);
+//	bool golden[NB_COLUMNS] = {false};
+//	for(u8 col = 0; col < NB_GOLDEN_COLS; col++) {
+//		u8 try = rand() % NB_COLUMNS;
+//		if(!golden[try])
+//			golden[try] = true;
+//		else
+//			col--;
+//	}
+	for(u8 col = 0; col < NB_COLUMNS; col++) {
+		remaining_bricks[col] = NB_ROWS;
 		for(u8 row = 0; row < NB_ROWS; row++) {
-			if(golden[col])
-				bricks[col][row] = GOLDEN;
-			else
-				bricks[col][row] = NORMAL;
+			bricks[col][row] = NORMAL;
+//			if(golden[col])
+//				bricks[col][row] = GOLDEN;
+//			else
+//				bricks[col][row] = NORMAL;
 		}
+	}
 	score = 0;
-	remaining_bricks = NB_COLUMNS*NB_ROWS;
+	tot_remaining_bricks = NB_COLUMNS*NB_ROWS;
 	pthread_mutex_unlock(&mtx_bricks);
 }
 
@@ -483,9 +522,12 @@ void* main_prog(void *arg) {
 
     /* Initialize semaphores */
     sem_init(&sem_debounce, 1, 0);
-    sem_init(&sem_check_collision, 1, 0);
+    sem_init(&sem_start_check, 1, 0);
     sem_init(&sem_arbitration_done, 1, 0);
-    sem_init(&golden_brick, 1, 0);
+    sem_init(&golden_brick, 1, NB_GOLDEN_COLS);
+    sem_init(&golden_release, 1, 0);
+    for(u8 i = 0; i < NB_COLUMNS; i++)
+    	sem_init(&sem_check_done[i], 1, 0);
 
     /* Initialize mutexes */
     pthread_mutex_init(&ball.mtx, NULL);
