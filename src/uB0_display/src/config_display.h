@@ -4,6 +4,8 @@
 
 #include "xtft_hw.h"
 
+#define to6bits(c)			( ((((c >> 16) & 0xff) >> 2) << 16) | ((((c >> 8) & 0xff) >> 2) << 8) | (c >> 2) )
+
 #define TFT_DEVICE_ID       XPAR_TFT_0_DEVICE_ID
 #define DDR_HIGH_ADDR       XPAR_PS7_DDR_0_S_AXI_HIGHADDR
 
@@ -22,7 +24,10 @@
 #define BLUE                0x000000ff
 #define YELLOW				0x00ffff00
 #define ORANGE				0x00ffa500
-#define PURPLE				0x00800080
+#define PURPLE				to6bits(0x9400D3)//0x0011061C
+#define CORAL				to6bits(0xFF7F50)
+#define SALMON				to6bits(0xFA8072)
+#define PINK				to6bits(0xDC143C)
 #define WHITE               0x00ffffff
 #define GRAY				0x00aaaaaa
 #define BLACK               0x00000000
@@ -30,7 +35,7 @@
 #define BZ_OFFSET_X			60
 #define BZ_OFFSET_Y			60
 
-#define BAR_FILLED			false
+#define BAR_FILLED			true
 
 #define CHAR_H				XTFT_CHAR_HEIGHT
 #define CHAR_W				XTFT_CHAR_WIDTH
@@ -41,11 +46,12 @@
 #define SPEED_OFFSET_Y		(SCORE_OFFSET_Y+3*CHAR_H)
 #define TXT_SPEED			"Ball speed:"
 #define BRICKS_OFFSET_Y		(SPEED_OFFSET_Y+3*CHAR_H)
-#define TXT_BRICKS			"Bricks:"
+#define TXT_BRICKS			"Bricks left:"
 
-#define MSG_BOX_HEIGHT		100
-#define MSG_BOX_WIDTH		200
+#define MSG_BOX_HEIGHT		CHAR_H*2
+#define MSG_BOX_WIDTH		100
 #define MSG_TXT_LOST		"You lost..."
-#define MSG_TXT_WON			"You won!!!"
+#define MSG_TXT_WON			"You won!"
+#define MSG_TXT_PAUSED		"Pause"
 
 #endif
