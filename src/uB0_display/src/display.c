@@ -52,15 +52,9 @@ void display_msg(XTft *Tft, Game_state state) {
 
 	drawBox(Tft, BZ_OFFSET_X+BZ_W/2-MSG_BOX_WIDTH/2, BZ_OFFSET_X+BZ_W/2+MSG_BOX_WIDTH/2,
 				 BZ_OFFSET_Y/2-MSG_BOX_HEIGHT/2, BZ_OFFSET_Y/2+MSG_BOX_HEIGHT/2,
-				 color, FILLED);
-
-	if(!erase) {
-		drawBox(Tft, BZ_OFFSET_X+BZ_W/2-MSG_BOX_WIDTH/2, BZ_OFFSET_X+BZ_W/2+MSG_BOX_WIDTH/2,
-					 BZ_OFFSET_Y/2-MSG_BOX_HEIGHT/2, BZ_OFFSET_Y/2+MSG_BOX_HEIGHT/2,
-					 BLACK, UNFILLED);
-		while(buf[size++ +1] != '\0');
-		writeText(Tft, BZ_OFFSET_X+(BZ_W-size*CHAR_W)/2, (BZ_OFFSET_Y-CHAR_H)/2, buf, WHITE);
-	}
+				 color, UNFILLED);
+	while(buf[size++ +1] != '\0');
+	writeText(Tft, BZ_OFFSET_X+(BZ_W-size*CHAR_W)/2, (BZ_OFFSET_Y-CHAR_H)/2, buf, color);
 }
 
 void draw_ball(XTft *Tft, u16 posx, u16 posy) {
@@ -103,24 +97,25 @@ void draw_bar(XTft *Tft, u16 bar_pos) {
 void draw_bricks(XTft *Tft, Brick bricks[NB_COLUMNS][NB_ROWS], Brick bricks_prev[NB_COLUMNS][NB_ROWS]) {
 	for(u8 col = 0; col < NB_COLUMNS; col++)
 		for(u8 row = 0; row < NB_ROWS; row++) {
-			if(bricks[col][row] == bricks_prev[col][row])
-				continue;
-			u32 color;
-			switch(bricks[col][row]) {
-				case NORMAL:
-					color = BLACK;
-					break;
-				case GOLDEN:
-					color = golden_palette[((row)+(col))%PALETTE_SIZE];
-					break;
-				default:
-					color = WHITE;
+			if(bricks[col][row] != bricks_prev[col][row])
+			{
+				u32 color;
+				switch(bricks[col][row]) {
+					case NORMAL:
+						color = BLACK;
+						break;
+					case GOLDEN:
+						color = golden_palette[((row)+(col))%PALETTE_SIZE];
+						break;
+					default:
+						color = WHITE;
+				}
+				drawBox(Tft, BZ_OFFSET_X+BRICK_OFFSET+col*(BRICK_W+BRICK_OFFSET),
+							 BZ_OFFSET_X+(col+1)*(BRICK_W+BRICK_OFFSET),
+							 BZ_OFFSET_Y+BRICK_OFFSET+row*(BRICK_H+BRICK_OFFSET),
+							 BZ_OFFSET_Y+(row+1)*(BRICK_H+BRICK_OFFSET),
+							 color, FILLED);
 			}
-			drawBox(Tft, BZ_OFFSET_X+BRICK_OFFSET+col*(BRICK_W+BRICK_OFFSET),
-						 BZ_OFFSET_X+(col+1)*(BRICK_W+BRICK_OFFSET),
-						 BZ_OFFSET_Y+BRICK_OFFSET+row*(BRICK_H+BRICK_OFFSET),
-						 BZ_OFFSET_Y+(row+1)*(BRICK_H+BRICK_OFFSET),
-						 color, FILLED);
 		}
 }
 
