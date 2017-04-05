@@ -87,10 +87,12 @@ void drawCircle(XTft *Tft, u16 x0, u16 y0, u16 radius, u32 color, bool filled) {
 
 void writeText(XTft *Tft, u16 x, u16 y, char *txt, u32 color) {
 	int i = 0;
-	u32 background_color;
-	XTft_GetPixel(Tft, x, y, &background_color);
+	u32 background_color = WHITE;
+	/* Try to use surrounding color as background */
+	if(x>0 && y>0)
+		XTft_GetPixel(Tft, x-1, y-1, &background_color);
 
-	XTft_SetColor(Tft, color, background_color);//Tft->BgColor);
+	XTft_SetColor(Tft, color, background_color);
 	XTft_SetPosChar(Tft, x, y);
 	while(txt[i] != '\0')
 		XTft_Write(Tft,txt[i++]);
