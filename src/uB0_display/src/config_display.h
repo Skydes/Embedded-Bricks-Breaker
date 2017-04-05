@@ -50,8 +50,8 @@
 
 #define MSG_BOX_HEIGHT		CHAR_H*2
 #define MSG_BOX_WIDTH		100
-#define MSG_TXT_LOST		"You lost..."
-#define MSG_TXT_WON			"You won!"
+#define MSG_TXT_LOST		"You lost"
+#define MSG_TXT_WON			"You won"
 #define MSG_TXT_PAUSED		"Pause"
 
 #endif
