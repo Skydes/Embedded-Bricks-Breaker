@@ -73,7 +73,6 @@ void* thread_display() {
 
 	safe_printf("[INFO uB0] \t Listening to the model\r\n");
 
-	// TODO: put all the display routines in parallel: ball, bricks, bar
 	while(1) {
 		XMbox_ReadBlocking(&mbx_model, (u32*)&data, sizeof(data));
 
@@ -99,6 +98,7 @@ void* thread_display() {
 
 		/* Display FPS */
 		fps = 1000/(GET_MS-t_stamp);
+//		safe_printf("Period: %u\n\r", GET_MS-t_stamp);
 		display_fps(&TftInstance, fps);
 		t_stamp = GET_MS;
 

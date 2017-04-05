@@ -106,7 +106,7 @@ void* thread_buttons() {
 		/* Manage bar movement */
 		switch(game_state) {
 			case WAITING:
-				ball.angle = BAR_MIN_ANGLE + sys_xget_clock_ticks()%(BAR_MAX_ANGLE - BAR_MIN_ANGLE);
+				//ball.angle = BAR_MIN_ANGLE + sys_xget_clock_ticks()%(BAR_MAX_ANGLE - BAR_MIN_ANGLE);
 			case PAUSED:
 				if(pb_center)
 					game_state = RUNNING;
@@ -150,8 +150,6 @@ void* thread_buttons() {
 
 			default:
 				;
-//				if(pb_center)
-//					init_game();
 		}
 
 		prev_pb_right = pb_right;
@@ -200,7 +198,7 @@ void* thread_column(void *arg) {
 		}
 
 		/* Check collision using the shared structure ball */
-		iter_max = UPDATE_S*ball.vel;
+		iter_max = round(UPDATE_S*ball.vel);
 		colli.happened = false;
 
 		x_f = ball.x + round(iter_max*ball.c);
@@ -214,7 +212,7 @@ void* thread_column(void *arg) {
 
 
 		if(!out) {
-			for(colli.iter = 1; (colli.iter < iter_max) && !colli.happened; colli.iter++) {
+			for(colli.iter = 1; (colli.iter <= iter_max) && !colli.happened; colli.iter++) {
 				ball_new.x = ball.x + round(colli.iter*ball.c);
 				ball_new.y = ball.y + round(colli.iter*ball.s);
 
@@ -227,7 +225,7 @@ void* thread_column(void *arg) {
 					if(bricks[idx][row] == BROKEN)
 						continue;
 					colli.happened = true;
-					dist_y = ball_new.y - (BRICK_OFFSET + BRICK_H/2 + row*(BRICK_H + BRICK_OFFSET)); // will maybe have to use floats
+					dist_y = ball_new.y - (BRICK_OFFSET + BRICK_H/2 + row*(BRICK_H + BRICK_OFFSET));
 					/* Bounce on vertical edge */
 					if( (abs(dist_x) == (BRICK_W/2 + BALL_R)) && (abs(dist_y) < BRICK_H/2)) {
 						colli.normal = dist_x > 0 ? 0 : 180;
@@ -264,11 +262,12 @@ void* thread_column(void *arg) {
 		if(next_colli.happened && (next_colli.idx == idx)) {
 //			safe_printf("[col%d]\tCollision accepted, destruction of brick %d\n\r", idx, row);
 			pthread_mutex_lock(&mtx_bricks);
-			score += (bricks[idx][row] == GOLDEN) ? SCORE_INC_GOLDEN : SCORE_INC_NORMAL;
-			bricks[idx][row] = BROKEN; // maybe do that on the next iteration ? --> or decide to delay this in display = with animation!
-			if((score % THRESH_GOLDEN) == 0)
+			u8 inc = (bricks[idx][row] == GOLDEN) ? SCORE_INC_GOLDEN : SCORE_INC_NORMAL;
+			bricks[idx][row] = BROKEN;
+			if( (score/THRESH_GOLDEN) < ((score+inc)/THRESH_GOLDEN))
 				for(u8 i = 0; i < NB_GOLDEN_COLS; i++)
 					sem_post(&golden_release);
+			score += inc;
 			tot_remaining_bricks--;
             if(--remaining_bricks[idx] == 0) {
             	pthread_mutex_unlock(&mtx_bricks);
@@ -332,7 +331,7 @@ void* thread_ball() {
 				bar.pos = BZ_W - BAR_W/2 - 1;
 
 
-			u16 iter_max = UPDATE_S*ball.vel;
+			u16 iter_max = round(UPDATE_S*ball.vel);
 			next_colli.idx = -1; // default value for bounce against wall/bar
 			next_colli.happened = false;
 			ball_new.vel = ball.vel; // maybe fully copy ball
@@ -340,7 +339,7 @@ void* thread_ball() {
             offset_angle = 0;
             offset_vel = 0;
 
-			for(next_colli.iter = 1; next_colli.iter < iter_max; next_colli.iter++) {
+			for(next_colli.iter = 1; next_colli.iter <= iter_max; next_colli.iter++) {
 				ball_new.x = ball.x + round(next_colli.iter*ball.c);
 				ball_new.y = ball.y + round(next_colli.iter*ball.s);
 				next_colli.happened = true;
@@ -460,7 +459,6 @@ void* thread_ball() {
 		last_sent = GET_MS;
 
 		XMbox_WriteBlocking(&mbx_display, (u32*)&model_state, sizeof(model_state));
-//		safe_printf("Model: sent bar %u, ball %u,%u\n\r", model_state.bar_pos, model_state.ball_posx, model_state.ball_posy);
 	}
 }
 
@@ -476,8 +474,8 @@ void init_game() {
 	pthread_mutex_unlock(&bar.mtx);
 
 	pthread_mutex_lock(&ball.mtx);
-	ball.x = BZ_W/2;
-	ball.y = BZ_H - BAR_OFFSET_Y - BAR_H - BALL_R;
+	ball.x = BALL_DEF_X;
+	ball.y = BALL_DEF_Y;
 	ball.vel = BALL_DEF_SPEED;
 	ball.angle = BALL_DEF_ANGLE;
 	pthread_mutex_unlock(&ball.mtx);
