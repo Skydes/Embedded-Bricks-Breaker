@@ -17,7 +17,7 @@ Debug/
 *.o
 *.obj
 *.so
-
+download.bit
 
 # Exclude Vivado hardware project
 
