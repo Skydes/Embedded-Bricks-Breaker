@@ -20,10 +20,12 @@
 #define BAR_MAX_ANGLE		345
 #define BAR_MIN_ANGLE		195
 
-#define BALL_DEF_SPEED		250
-#define BALL_DEF_ANGLE		270
+#define BALL_DEF_SPEED		50
+#define BALL_DEF_ANGLE		290
 #define BALL_MAX_VEL		1000
 #define BALL_MIN_VEL		50
+#define BALL_DEF_X			(BZ_W-BAR_N-BAR_S-BAR_A-10)/2
+#define BALL_DEF_Y			(BZ_H-BAR_OFFSET_Y-BAR_H-BALL_R-10)
 
 #define NB_GOLDEN_COLS		2
 #define THRESH_GOLDEN		10
