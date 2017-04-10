@@ -41,7 +41,7 @@ void* thread_display() {
 	u32 TftDeviceId = TFT_DEVICE_ID;
 	Model_state data, data_prev[NB_FRAMES];
 	u32 t_stamp = GET_MS;
-	u16 fps;
+	u16 fps = 0;
 
 	safe_printf("[INFO uB0] \t Configuring the display\r\n");
 
@@ -97,9 +97,8 @@ void* thread_display() {
 		}
 
 		/* Display FPS */
-		fps = 1000/(GET_MS-t_stamp);
-//		safe_printf("Period: %u\n\r", GET_MS-t_stamp);
 		display_fps(&TftInstance, fps);
+		fps = (unsigned)(1000./(GET_MS-t_stamp));
 		t_stamp = GET_MS;
 
 		data_prev[frames_cnt] = data;
