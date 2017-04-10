@@ -138,7 +138,7 @@ SECTIONS
 
 .gcc_except_table : {
    *(.gcc_except_table)
-} > ps7_ddr_0_GP0_AXI_BASENAME
+} > microblaze_0_local_memory_ilmb_bram_if_cntlr_microblaze_0_local_memory_dlmb_bram_if_cntlr
 
 .sdata : {
    . = ALIGN(8);
