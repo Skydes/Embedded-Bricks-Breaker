@@ -23,6 +23,4 @@ void display_info(XTft *Tft, Model_state data);
 void display_fps(XTft *Tft, u16 fps);
 void draw_bricks(XTft *Tft, Brick bricks[NB_COLUMNS][NB_ROWS], Brick bricks_prev[NB_COLUMNS][NB_ROWS]);
 
-void draw_test(XTft *Tft);
-
 #endif

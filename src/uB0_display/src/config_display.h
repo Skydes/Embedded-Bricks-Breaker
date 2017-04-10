@@ -24,7 +24,7 @@
 #define BLUE                0x000000ff
 #define YELLOW				0x00ffff00
 #define ORANGE				0x00ffa500
-#define PURPLE				to6bits(0x9400D3)//0x0011061C
+#define PURPLE				to6bits(0x9400D3)
 #define CORAL				to6bits(0xFF7F50)
 #define SALMON				to6bits(0xFA8072)
 #define PINK				to6bits(0xDC143C)
@@ -47,6 +47,8 @@
 #define TXT_SPEED			"Ball speed:"
 #define BRICKS_OFFSET_Y		(SPEED_OFFSET_Y+3*CHAR_H)
 #define TXT_BRICKS			"Bricks left:"
+#define TIME_OFFSET_Y		(BRICKS_OFFSET_Y+3*CHAR_H)
+#define TXT_TIME			"Time:"
 
 #define MSG_BOX_HEIGHT		CHAR_H*2
 #define MSG_BOX_WIDTH		100

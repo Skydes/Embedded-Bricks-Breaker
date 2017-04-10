@@ -4,6 +4,8 @@
 u32 golden_palette[] = {RED,GREEN,BLUE,YELLOW,PURPLE,CORAL};
 static bool erase = false;
 
+/* A thread-safe, fast and lightweight alternative to snpritf */
+void alt_snprintf(char* buf, unsigned u, unsigned size);
 
 void set_erase() { erase = true; }
 void set_draw() { erase = false; }
@@ -12,6 +14,7 @@ void draw_layout(XTft *Tft) {
 	char txt_score[] = TXT_SCORE;
 	char txt_speed[] = TXT_SPEED;
 	char txt_bricks[] = TXT_BRICKS;
+	char txt_time[] = TXT_TIME;
 
 	drawBox(Tft, BZ_OFFSET_X, BZ_OFFSET_X+BZ_W,
 				 BZ_OFFSET_Y, BZ_OFFSET_Y+BZ_H, BLACK, UNFILLED);
@@ -19,6 +22,7 @@ void draw_layout(XTft *Tft) {
 	writeText(Tft, TXT_OFFSET_X, SCORE_OFFSET_Y, txt_score, BLACK);
 	writeText(Tft, TXT_OFFSET_X, SPEED_OFFSET_Y, txt_speed, BLACK);
 	writeText(Tft, TXT_OFFSET_X, BRICKS_OFFSET_Y, txt_bricks, BLACK);
+	writeText(Tft, TXT_OFFSET_X, TIME_OFFSET_Y, txt_time, BLACK);
 }
 
 void display_msg(XTft *Tft, Game_state state) {
@@ -124,11 +128,10 @@ void display_info(XTft *Tft, Model_state data) {
 	u8 nb_bricks = 0;
 	u32 color = erase ? WHITE : BLACK;
 
-	// TODO: THIS IS NOT THREAD-SAFE !
-	sprintf(buf, "%03u", data.score);
+	alt_snprintf(buf,data.score,3);
 	writeText(Tft, TXT_OFFSET_X, SCORE_OFFSET_Y+CHAR_H, buf, color);
 
-	sprintf(buf, "%04u", data.ball_vel);
+	alt_snprintf(buf,data.ball_vel,4);
 	writeText(Tft, TXT_OFFSET_X, SPEED_OFFSET_Y+CHAR_H, buf, color);
 
 	for(u8 col = 0; col < NB_COLUMNS; col++)
@@ -136,19 +139,27 @@ void display_info(XTft *Tft, Model_state data) {
 			if(data.bricks[col][row] != BROKEN)
 				nb_bricks += 1;
 
-	sprintf(buf, "%03u", nb_bricks);
+	alt_snprintf(buf,nb_bricks,3);
 	writeText(Tft, TXT_OFFSET_X, BRICKS_OFFSET_Y+CHAR_H, buf, color);
+
+	alt_snprintf(buf,data.time,4);
+	writeText(Tft, TXT_OFFSET_X, TIME_OFFSET_Y+CHAR_H, buf, color);
 }
 
 void display_fps(XTft *Tft, u16 fps) {
-	char buf[256];
-	drawBox(Tft, 10, 10+10*CHAR_W, 10, 10+2*CHAR_H, WHITE, FILLED);
-	snprintf(buf, 9,"FPS: %03u", fps);
-	writeText(Tft, 10, 10, buf, BLACK);
-
+	char* name = "FPS: ";
+	char buf[8];
+	alt_snprintf(buf,fps,3);
+	writeText(Tft,10,10,name, BLACK);
+	writeText(Tft, 10+5*CHAR_W, 10, buf, BLACK);
 }
 
-void draw_test(XTft *Tft) {
-	drawBox(Tft, 10, 50, 40, 80, BLACK, true);
-	drawBox(Tft, 10, 50, 40, 80, WHITE, true);
+void alt_snprintf(char* buf, unsigned u, unsigned size) {
+	u8 i;
+	unsigned b = u;
+	for(i = 0; i < size; i++) {
+		buf[size-i-1] = (char)((b % 10) + (int)'0');
+		b /= 10;
+	}
+	buf[size] = '\0';
 }
