@@ -4,12 +4,10 @@
 #include "xmutex.h"
 #include "xmbox.h"
 
-#include <errno.h>
 #include <pthread.h>
 #include <sys/init.h>
 #include <sys/msg.h>
 #include <sys/ipc.h>
-#include <sys/timer.h> // for sleep
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,6 +98,15 @@ void* thread_display() {
 		display_fps(&TftInstance, fps);
 		fps = (unsigned)(1000./(GET_MS-t_stamp));
 		t_stamp = GET_MS;
+
+//		if(data.score > 0) {
+//			long i;
+//			for(i = TFT_FRAME_ADDR1; i < TFT_FRAME_ADDR2; i += 32) {
+//				safe_printf("%08x ", Xil_In32(i));
+//				if( ((i+32) % (32*16)) == 0)
+//					safe_printf("\n\r");
+//			}
+//		}
 
 		data_prev[frames_cnt] = data;
 
