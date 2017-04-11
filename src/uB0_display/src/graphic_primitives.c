@@ -1,14 +1,12 @@
 #include "graphic_primitives.h"
 
-
-//void setPixel(XTft *Tft, int ColVal, int RowVal, u32 PixelVal);
+/* Faster and lighter setPixel function, avoid call stack */
 #define setPixel(Tft, x, y, c)  { if(((x) >= 0) && ((y) >= 0) && ((x) < XTFT_DISPLAY_WIDTH) && ((y) < XTFT_DISPLAY_HEIGHT)) \
 								       Xil_Out32((Tft)->TftConfig.VideoMemBaseAddr + (4 * ((y) * XTFT_DISPLAY_BUFFER_WIDTH + (x))), c); }
 
 
 
 void drawBox(XTft *Tft, u16 x1, u16 x2, u16 y1, u16 y2, u32 color, bool filled) {
-	//xil_printf("Drawing box between: %u,%u, ; %u,%u\n\r", x1, y1, x2, y2);
 	if(!filled){
 		drawHLine(Tft, x1, x2, y1, color);
 		drawHLine(Tft, x1, x2, y2, color);
@@ -97,10 +95,3 @@ void writeText(XTft *Tft, u16 x, u16 y, char *txt, u32 color) {
 	while(txt[i] != '\0')
 		XTft_Write(Tft,txt[i++]);
 }
-
-//void setPixel(XTft *Tft, int x, int y, u32 PixelVal) {
-//    if ((x < 0) || (y < 0) || (x >= XTFT_DISPLAY_WIDTH) || (y >= XTFT_DISPLAY_HEIGHT))
-//        return;
-//    Xil_Out32(Tft->TftConfig.VideoMemBaseAddr
-//        + (4 * ((y) * XTFT_DISPLAY_BUFFER_WIDTH + x)), PixelVal);
-//}
