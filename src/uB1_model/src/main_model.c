@@ -310,6 +310,7 @@ void* thread_ball() {
 	Model_state model_state;
 	Ball ball_new;
 	int offset_angle, offset_vel;
+	int wait_time;
 	u32 elapsed_time = 0;
 	sem_post(&sem_arbitration_done);
 
@@ -481,9 +482,12 @@ void* thread_ball() {
 		model_state.game_state = game_state;
 		model_state.time = (unsigned) (elapsed_time/1000.);
 
-		/* Make sure the refresh rate is constant */
+		/* Adjust the refresh rate if collision, otherwise keep it constant */
 		actual_time = GET_MS;
-		int wait_time = UPDATE_MS - (int) actual_time + (int) last_sent;
+		if( (game_state == RUNNING) && next_colli.happened)
+			wait_time = (1000*next_colli.iter)/ball.vel - (int) actual_time + (int) last_sent;
+		else
+			wait_time = UPDATE_MS - (int) actual_time + (int) last_sent;
 		sleep(max(wait_time,0));
 
 		/* Update elapsed time */
