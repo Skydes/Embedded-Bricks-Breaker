@@ -16,8 +16,8 @@
                                    xil_printf(fmt, ##args); fflush(stdout); \
                                    XMutex_Unlock(&mtx_hw, HW_MTX_PRINT_IDX); }
 
-#define GET_MS              (sys_xg et_clock_ticks()*(SYSTMR_INTERVAL \
-                                                      / SYSTMR_CLK_FREQ_KHZ))
+#define GET_MS              (sys_xget_clock_ticks()*(SYSTMR_INTERVAL \
+                                                     / SYSTMR_CLK_FREQ_KHZ))
 
 /* Hardware mutex */
 #define MUTEX_DEVICE_ID     XPAR_MUTEX_0_IF_1_DEVICE_ID
