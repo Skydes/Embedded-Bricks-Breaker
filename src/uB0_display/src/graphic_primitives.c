@@ -1,23 +1,38 @@
+/*******************************************************************************
+ *
+ * Title:       EE4214 Bricks-Breaker Project
+ * File:        graphic_primitives.c
+ * Date:        2017-04-13
+ * Author:      Paul-Edouard Sarlin (A0153124U)
+ * Description: Low level drawing primitives, pixel-level interaction.
+ *
+ ******************************************************************************/
+
 #include "graphic_primitives.h"
 
 /* Faster and lighter setPixel function, avoid call stack */
-#define setPixel(Tft, x, y, c)  { if(((x) >= 0) && ((y) >= 0) && ((x) < XTFT_DISPLAY_WIDTH) && ((y) < XTFT_DISPLAY_HEIGHT)) \
-								       Xil_Out32((Tft)->TftConfig.VideoMemBaseAddr + (4 * ((y) * XTFT_DISPLAY_BUFFER_WIDTH + (x))), c); }
+#define setPixel(Tft,x,y,c)  { if(((x) >= 0) && \
+                                  ((y) >= 0) && \
+                                  ((x) < XTFT_DISPLAY_WIDTH) && \
+                                  ((y) < XTFT_DISPLAY_HEIGHT)) \
+                                    Xil_Out32((Tft)->TftConfig.VideoMemBaseAddr \
+                                              +(4*((y)*XTFT_DISPLAY_BUFFER_WIDTH\
+                                              +(x))), c); }
 
 
 
 void drawBox(XTft *Tft, u16 x1, u16 x2, u16 y1, u16 y2, u32 color, bool filled) {
-	if(!filled){
-		drawHLine(Tft, x1, x2, y1, color);
-		drawHLine(Tft, x1, x2, y2, color);
-		drawVLine(Tft, x1, y1, y2, color);
-		drawVLine(Tft, x2, y1, y2, color);
-		return;
-	}
+    if(!filled){
+        drawHLine(Tft, x1, x2, y1, color);
+        drawHLine(Tft, x1, x2, y2, color);
+        drawVLine(Tft, x1, y1, y2, color);
+        drawVLine(Tft, x2, y1, y2, color);
+        return;
+    }
 
-	for(u16 x = x1; x <= x2; x++)
-		for(u16 y = y1; y <= y2; y++)
-			setPixel(Tft, x, y, color);
+    for(u16 x = x1; x <= x2; x++)
+        for(u16 y = y1; y <= y2; y++)
+            setPixel(Tft, x, y, color);
 }
 
 void drawHLine(XTft *Tft, int x1, int x2, u16 y, u32 color) {
@@ -84,14 +99,14 @@ void drawCircle(XTft *Tft, u16 x0, u16 y0, u16 radius, u32 color, bool filled) {
 }
 
 void writeText(XTft *Tft, u16 x, u16 y, char *txt, u32 color) {
-	int i = 0;
-	u32 background_color = WHITE;
-	/* Try to use surrounding color as background */
-	if(x>0 && y>0)
-		XTft_GetPixel(Tft, x-1, y-1, &background_color);
+    int i = 0;
+    u32 background_color = WHITE;
+    /* Try to use surrounding color as background */
+    if(x>0 && y>0)
+        XTft_GetPixel(Tft, x-1, y-1, &background_color);
 
-	XTft_SetColor(Tft, color, background_color);
-	XTft_SetPosChar(Tft, x, y);
-	while(txt[i] != '\0')
-		XTft_Write(Tft,txt[i++]);
+    XTft_SetColor(Tft, color, background_color);
+    XTft_SetPosChar(Tft, x, y);
+    while(txt[i] != '\0')
+        XTft_Write(Tft,txt[i++]);
 }

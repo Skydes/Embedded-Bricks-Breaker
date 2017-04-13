@@ -1,3 +1,11 @@
+/*******************************************************************************
+ *
+ * Title:       EE4214 Bricks-Breaker Project
+ * File:        timer.c
+ * Date:        2017-04-13
+ * Author:      Paul-Edouard Sarlin (A0153124U)
+ *
+ ******************************************************************************/
 
 #ifndef SRC_TIMER_H_
 #define SRC_TIMER_H_
@@ -10,7 +18,7 @@
 
 #include <pthread.h>
 #include <sys/init.h>
-#include <sys/timer.h> // for sleep
+#include <sys/timer.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,11 +27,11 @@
 
 typedef enum Timer_state {T_STOPPED, T_RUNNING, T_FINISHED} Timer_state;
 typedef struct {
-	Timer_state state;
-	u32 delay_ms;
-	sem_t trigger;
-	u32 start_time;
-	void (*callback)();
+    Timer_state state;
+    u32 delay_ms;
+    sem_t trigger;
+    u32 start_time;
+    void (*callback)();
 } Timer;
 
 Timer* timer_init(u32 delay_ms, void (*callback)());
