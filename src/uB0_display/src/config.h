@@ -1,9 +1,9 @@
 /*******************************************************************************
  *
- * Title:       EE4214 Bricks-Breaker Project
+ * Title:       Embedded Bricks-Breaker Project
  * File:        config.h
  * Date:        2017-04-13
- * Author:      Paul-Edouard Sarlin (A0153124U)
+ * Author:      Paul-Edouard Sarlin
  * Description: Contains the global parameters use by the model and the display.
  *
  ******************************************************************************/

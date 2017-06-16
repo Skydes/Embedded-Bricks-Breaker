@@ -1,9 +1,9 @@
 /*******************************************************************************
  *
- * Title:       EE4214 Bricks-Breaker Project
+ * Title:       Embedded Bricks-Breaker Project
  * File:        config_model.h
  * Date:        2017-04-13
- * Author:      Paul-Edouard Sarlin (A0153124U)
+ * Author:      Paul-Edouard Sarlin
  * Description: Contains the parameters that are specific to the model.
  *
  ******************************************************************************/

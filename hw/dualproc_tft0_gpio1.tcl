@@ -1,9 +1,9 @@
 #######################################################################################
 #
-# Title:       EE4214 Bricks-Breaker Project
+# Title:       Embedded Bricks-Breaker Project
 # File:        dualproc_tft0_gpio1.tcl
 # Date:        2017-04-13
-# Author:      Paul-Edouard Sarlin (A0153124U)
+# Author:      Paul-Edouard Sarlin
 # Description: tcl script to build the block diagram for a dual-processor system with
 #              the TFT assigned to uB 0 and the GPIO assigned to uB1.
 #
